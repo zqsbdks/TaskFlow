@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, func
+from sqlalchemy import BigInteger, DateTime, ForeignKey, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -43,7 +43,7 @@ class TaskTag(Base):
     # created_at：任务与标签建立绑定关系的时间。
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
-        server_default=func.now(),
+        server_default=text("(now())"),
         comment="关联创建时间",
     )
 

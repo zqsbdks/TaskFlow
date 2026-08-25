@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 
 if TYPE_CHECKING:
+    from app.models.tag import Tag
     from app.models.task import Task
 
 
@@ -62,13 +63,13 @@ class User(Base):
     # created_at：用户记录首次写入数据库的时间。
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
-        server_default=func.now(),
+        server_default=text("(now())"),
         comment="创建时间",
     )
     # updated_at：用户资料最近一次更新的时间。
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
-        server_default=func.now(),
+        server_default=text("(now())"),
         onupdate=func.now(),
         comment="更新时间",
     )
@@ -78,4 +79,10 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
-    ) 
+    )
+    # tags：当前用户创建的全部标签；删除用户时数据库会级联删除这些标签。
+    tags: Mapped[list["Tag"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )

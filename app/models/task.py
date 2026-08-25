@@ -94,13 +94,13 @@ class Task(Base):
     # created_at：任务记录首次写入数据库的时间。
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
-        server_default=func.now(),
+        server_default=text("(now())"),
         comment="创建时间",
     )
     # updated_at：任务内容或状态最近一次更新的时间。
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
-        server_default=func.now(),
+        server_default=text("(now())"),
         onupdate=func.now(),
         comment="更新时间",
     )
