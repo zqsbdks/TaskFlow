@@ -6,6 +6,10 @@ Alembic 只会看到导入进 ``Base.metadata`` 的模型。新增模型后，�
 """
 
 from app.models.base import Base
+from app.models.tag import Tag
+from app.models.task import Task
+from app.models.task_tag import TaskTag
+from app.models.user import User
 
 # 新增模型后同步加入 __all__，让包的公共接口保持清晰。
-__all__ = ["Base"]
+__all__ = ["Base", "Tag", "Task", "TaskTag", "User"]
