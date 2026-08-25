@@ -7,6 +7,7 @@ from redis import asyncio as aioredis
 
 from app.core.config import settings
 
+# logger：记录 Redis 初始化和关闭过程中异常的当前模块日志器。
 logger = logging.getLogger(__name__)
 
 # 模块级引用保证 FastAPI Cache 和其他依赖共享同一个 Redis 连接池。

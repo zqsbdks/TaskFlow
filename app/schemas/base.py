@@ -8,6 +8,7 @@ from typing import Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict
 
+# T：响应 data 字段的泛型类型，由具体接口决定实际数据结构。
 T = TypeVar("T")
 
 

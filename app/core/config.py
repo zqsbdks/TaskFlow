@@ -26,29 +26,38 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    project_name: str = "FastAPI Starter"  # OpenAPI 文档和日志中显示的项目名。
-    debug: bool = False  # 生产环境必须关闭，避免响应中泄露调试信息。
-    api_v1_prefix: str = "/api/v1"  # 业务 API 的统一版本前缀。
+    # project_name：OpenAPI 文档标题和日志中显示的项目名称。
+    project_name: str = "FastAPI Starter"
+    # debug：是否启用调试模式；生产环境必须关闭，避免响应泄露异常细节。
+    debug: bool = False
+    # api_v1_prefix：业务接口的统一版本前缀，便于未来同时维护多个 API 版本。
+    api_v1_prefix: str = "/api/v1"
 
-    # URL 必须使用 aiomysql 异步驱动；echo=True 时 SQL 会写入日志。
+    # database_url：异步数据库连接地址；MySQL 必须使用 aiomysql 驱动。
     database_url: str = "mysql+aiomysql://username:password@localhost:3306/app?charset=utf8mb4"
+    # database_echo：是否把 SQLAlchemy 执行的 SQL 输出到日志。
     database_echo: bool = False
 
-    # log_file 留空时只输出到控制台，设置路径后同时写入轮转文件。
+    # log_level：应用允许输出的最低日志等级，例如 INFO 或 DEBUG。
     log_level: str = "INFO"
+    # log_file：可选日志文件路径；留空时只输出到控制台。
     log_file: str | None = None
 
-    # secret_key 用于 JWT HMAC 签名，生产环境应使用至少 32 字节的随机值。
+    # secret_key：JWT HMAC 签名密钥；生产环境应使用至少 32 字节的随机值。
     secret_key: str = "dev-only-change-me-before-production"
+    # jwt_algorithm：JWT 的签名和验证算法，签发端与验证端必须保持一致。
     jwt_algorithm: str = "HS256"
+    # access_token_expire_minutes：访问令牌有效时间，单位为分钟。
     access_token_expire_minutes: int = 30
 
-    # Redis 是可选服务；URL 为空时不会创建客户端或初始化缓存后端。
+    # redis_url：可选 Redis 连接地址；为空时不会创建客户端或初始化缓存。
     redis_url: str | None = None
+    # redis_max_connections：Redis 连接池的最大连接数量，最小值为 1。
     redis_max_connections: int = Field(default=10, ge=1)
+    # redis_timeout：单次 Redis 网络操作的超时时间，单位为秒且必须大于 0。
     redis_timeout: float = Field(default=5.0, gt=0)
 
-    # default_factory 确保不同 Settings 实例不会共享同一个可变列表。
+    # cors_origins：允许跨域请求的来源列表；default_factory 避免实例间共享列表。
     cors_origins: list[str] = Field(default_factory=lambda: ["*"])
 
 

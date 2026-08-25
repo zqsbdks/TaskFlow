@@ -49,6 +49,7 @@ async def get_db_session() -> AsyncIterator[AsyncSession]:
         AsyncSession: 绑定到共享异步 Engine 的请求级会话。
     """
 
+    # session：仅服务当前请求的异步会话，退出上下文后自动释放数据库连接。
     async with async_session_factory() as session:
         try:
             yield session

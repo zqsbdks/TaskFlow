@@ -28,6 +28,7 @@ def create_app() -> FastAPI:
     # 日志必须在其他运行期组件开始记录消息前完成配置。
     configure_logging()
 
+    # application：本次工厂调用创建的 FastAPI 实例，测试之间不会共享路由状态。
     # lifespan 统一接管 Redis、数据库连接池等资源的启动与释放。
     application = FastAPI(
         title=settings.project_name,

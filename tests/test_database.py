@@ -22,8 +22,10 @@ def test_engine_uses_async_mysql_driver() -> None:
 async def test_mysql_connection() -> None:
     """对 .env 配置的 MySQL 执行只读 SELECT 1 连通性检查。"""
 
+    # session：由全局异步会话工厂创建的短生命周期数据库会话。
     # 环境变量开关防止普通单元测试意外依赖外部数据库。
     async with async_session_factory() as session:
+        # result：数据库执行 SELECT 1 后返回的结果集对象。
         result = await session.execute(text("SELECT 1"))
 
     # scalar_one 同时验证查询有且只有一个结果。

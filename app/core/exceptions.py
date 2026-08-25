@@ -17,7 +17,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.core.config import settings
 from app.schemas import ResponseModel
 
-logger = logging.getLogger(__name__)  # 获取当前模块的日志记录器。
+# logger：记录数据库异常和未知异常完整堆栈的当前模块日志器。
+logger = logging.getLogger(__name__)
 
 
 # ----------------------------------------------------------------------
@@ -43,7 +44,7 @@ def create_exception_response(
         JSONResponse: 包含统一格式错误信息的 JSON 响应。
     """
 
-    # 实例化统一响应模型，将错误信息包装在标准结构中。
+    # response_obj：经过 Pydantic 校验的统一错误响应模型实例。
     response_obj = ResponseModel[dict[str, Any] | None](
         code=status_code,
         message=message,
@@ -93,10 +94,12 @@ async def validation_exception_handler(request: Request, exc: Exception) -> JSON
     """
 
     assert isinstance(exc, RequestValidationError)
-    errors = exc.errors()  # 获取 Pydantic 的校验错误详情列表。
-    # 提取第一条错误信息作为主要提示，若无则使用默认提示。
+    # errors：Pydantic 返回的全部字段校验错误详情列表。
+    errors = exc.errors()
+    # first_error_msg：展示给调用方的首条校验错误；无详情时使用通用提示。
     first_error_msg = errors[0].get("msg") if errors else "请求参数校验失败"
 
+    # error_data：仅在调试模式下返回的诊断数据，生产环境保持为 None。
     error_data = None
     if settings.debug:
         # 在调试模式下，返回详细的错误类型、校验详情和请求路径以便排查。
@@ -125,7 +128,9 @@ async def integrity_error_handler(request: Request, exc: Exception) -> JSONRespo
     """
 
     assert isinstance(exc, IntegrityError)
-    error_msg = str(exc.orig)  # 获取数据库底层返回的原始错误信息。
+    # error_msg：数据库驱动返回的原始完整性约束错误文本，仅用于分类和调试。
+    error_msg = str(exc.orig)
+    # detail：对外展示的安全、友好的约束冲突说明。
     detail = "数据约束冲突，请检查输入"
 
     # 识别常见的数据库报错信息，转换为对用户友好的提示。
@@ -134,6 +139,7 @@ async def integrity_error_handler(request: Request, exc: Exception) -> JSONRespo
     elif "FOREIGN KEY" in error_msg:
         detail = "关联外键数据不存在"
 
+    # error_data：调试模式下附带的数据库诊断信息，生产环境不返回。
     error_data = None
     if settings.debug:
         # 调试模式下暴露原始数据库报错以便调试。
@@ -164,6 +170,7 @@ async def sqlalchemy_error_handler(request: Request, exc: Exception) -> JSONResp
     assert isinstance(exc, SQLAlchemyError)
     logger.error(f"数据库操作异常: {exc}", exc_info=True)  # 记录完整的错误堆栈日志。
 
+    # error_data：调试模式下附带的 SQLAlchemy 异常详情和堆栈。
     error_data = None
     if settings.debug:
         # 调试模式下返回异常类型、详情、堆栈跟踪和请求路径。
@@ -194,6 +201,7 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
 
     logger.error(f"服务器未知错误: {exc}", exc_info=True)  # 记录完整的错误堆栈日志。
 
+    # error_data：调试模式下附带的未知异常详情和完整堆栈。
     error_data = None
     if settings.debug:
         # 调试模式下返回异常类型、详情、堆栈跟踪和请求路径。

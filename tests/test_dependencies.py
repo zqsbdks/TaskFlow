@@ -12,13 +12,16 @@ from app.dependencies.auth import get_current_token_payload
 async def test_current_token_payload_returns_token_payload() -> None:
     """有效令牌应通过签名校验并原样返回 sub 声明。"""
 
+    # token：使用测试用户标识签发的有效 JWT 字符串。
     # 使用正式签发函数生成令牌，覆盖签发与认证依赖之间的兼容性。
     token = create_access_token({"sub": "test-user"})
+    # credentials：模拟 FastAPI 从 Authorization 请求头解析出的 Bearer 凭据。
     credentials = HTTPAuthorizationCredentials(
         scheme="Bearer",
         credentials=token,
     )
 
+    # payload：通过签名、算法、过期时间及 sub 校验后的 JWT 载荷。
     payload = await get_current_token_payload(credentials)
 
     assert payload["sub"] == "test-user"
@@ -28,6 +31,7 @@ async def test_current_token_payload_returns_token_payload() -> None:
 async def test_current_token_payload_rejects_missing_credentials() -> None:
     """缺少 Authorization 请求头时应返回 401。"""
 
+    # exc_info：pytest 捕获到的 HTTPException 信息，供后续检查状态码。
     # 直接调用依赖函数，精确验证异常类型和状态码。
     with pytest.raises(HTTPException) as exc_info:
         await get_current_token_payload(None)

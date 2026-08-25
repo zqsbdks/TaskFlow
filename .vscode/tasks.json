@@ -24,8 +24,11 @@
         {
             "label": "FastAPI: 启动开发服务",
             "type": "process",
-            "command": "${command:python.interpreterPath}",
+            "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
             "args": ["-m", "uvicorn", "app.main:app", "--reload"],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
             "problemMatcher": [],
             "presentation": {
                 "reveal": "always",
@@ -36,7 +39,7 @@
         {
             "label": "Test: 运行普通测试",
             "type": "process",
-            "command": "${command:python.interpreterPath}",
+            "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
             "args": ["-m", "pytest"],
             "group": "test",
             "problemMatcher": []
@@ -44,7 +47,7 @@
         {
             "label": "Test: 运行 MySQL 集成测试",
             "type": "process",
-            "command": "${command:python.interpreterPath}",
+            "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
             "args": ["-m", "pytest", "-m", "integration"],
             "options": {
                 "env": {
@@ -57,21 +60,21 @@
         {
             "label": "Quality: Ruff 检查",
             "type": "process",
-            "command": "${command:python.interpreterPath}",
+            "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
             "args": ["-m", "ruff", "check", "."],
             "problemMatcher": []
         },
         {
             "label": "Quality: Ruff 格式检查",
             "type": "process",
-            "command": "${command:python.interpreterPath}",
+            "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
             "args": ["-m", "ruff", "format", "--check", "."],
             "problemMatcher": []
         },
         {
             "label": "Quality: MyPy 类型检查",
             "type": "process",
-            "command": "${command:python.interpreterPath}",
+            "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
             "args": ["-m", "mypy", "app"],
             "problemMatcher": []
         },
@@ -89,7 +92,7 @@
         {
             "label": "Alembic: 生成迁移",
             "type": "process",
-            "command": "${command:python.interpreterPath}",
+            "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
             "args": [
                 "-m",
                 "alembic",
@@ -103,14 +106,14 @@
         {
             "label": "Alembic: 升级到 head",
             "type": "process",
-            "command": "${command:python.interpreterPath}",
+            "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
             "args": ["-m", "alembic", "upgrade", "head"],
             "problemMatcher": []
         },
         {
             "label": "Dependencies: 生成 freeze 快照",
             "type": "process",
-            "command": "${command:python.interpreterPath}",
+            "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
             "args": ["scripts/freeze_requirements.py"],
             "problemMatcher": []
         }

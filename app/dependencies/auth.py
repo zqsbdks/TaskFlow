@@ -41,6 +41,7 @@ async def get_current_token_payload(
 
     try:
         # PyJWT 会同时校验签名、允许的算法以及标准 exp 过期声明。
+        # payload：签名、算法和有效期均校验通过后的 JWT 声明字典。
         payload = jwt.decode(
             credentials.credentials,
             settings.secret_key,

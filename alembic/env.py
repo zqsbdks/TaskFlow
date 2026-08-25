@@ -43,7 +43,9 @@ def include_name(
 
     if type_ == "table" and name is not None:
         # metadata 的键在指定 schema 时形如 "schema.table"，否则就是表名。
+        # schema_name：父级对象携带的可选数据库 schema 名称。
         schema_name = parent_names.get("schema_name")
+        # table_key：与 SQLAlchemy metadata.tables 键格式一致的完整表标识。
         table_key = f"{schema_name}.{name}" if schema_name else name
         return table_key in target_metadata.tables
     return True
@@ -55,6 +57,7 @@ def run_migrations_offline() -> None:
     ``--sql`` 模式会进入此分支。literal_binds 将参数直接渲染进 SQL，便于把输出
     交给 DBA 审核或在受控环境执行。
     """
+    # url：已被应用 Settings 覆盖并完成百分号转义的数据库连接地址。
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
@@ -94,6 +97,7 @@ def do_run_migrations(connection: Connection) -> None:
 async def run_async_migrations() -> None:
     """创建一次性异步 Engine，连接数据库并运行迁移。"""
 
+    # connectable：仅供本次迁移命令使用的异步 Engine。
     # NullPool 避免 Alembic 短命令进程维护无意义的长连接池。
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
@@ -101,6 +105,7 @@ async def run_async_migrations() -> None:
         poolclass=pool.NullPool,
     )
 
+    # connection：从临时 Engine 获取的异步数据库连接，退出上下文后自动归还。
     async with connectable.connect() as connection:
         # Alembic 的核心迁移 API 是同步的，通过 run_sync 安全桥接异步连接。
         await connection.run_sync(do_run_migrations)

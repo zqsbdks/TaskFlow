@@ -24,7 +24,7 @@ async def lifespan(app: FastAPI):
     # 即使当前函数未直接使用 app，保留该参数以符合 FastAPI lifespan 协议。
     _ = app
 
-    # 未配置 APP_REDIS_URL 时返回 None，应用可以在无 Redis 环境下启动。
+    # client：当前进程共用的异步 Redis 客户端；未配置 APP_REDIS_URL 时为 None。
     client = get_redis_client()
     if client is not None:
         try:

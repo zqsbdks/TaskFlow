@@ -23,7 +23,7 @@ def configure_logging() -> None:
     }
 
     if settings.log_file:
-        # 仅在显式配置文件路径时创建目录，默认运行不会产生额外文件。
+        # log_path：规范化后的日志文件路径，用于创建父目录和配置文件处理器。
         log_path = Path(settings.log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
         handlers["file"] = {

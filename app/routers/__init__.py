@@ -6,7 +6,7 @@
 
 from fastapi import APIRouter
 
-# 该对象最终在 app.main 中统一添加 /api/v1 前缀。
+# api_router：汇总各业务路由的顶层路由器，最终在 app.main 中添加 /api/v1 前缀。
 api_router = APIRouter()
 
 __all__ = ["api_router"]
