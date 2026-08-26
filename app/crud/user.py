@@ -134,3 +134,29 @@ async def update_user(db: AsyncSession, user: User, user_data: UserUpdateRequest
 
 
 # endregion
+
+
+# region 用户密码更新
+async def update_user_password(db: AsyncSession, user: User, password_hash: str) -> User:
+    """保存用户的新密码哈希并返回刷新后的用户对象。
+
+    Args:
+        db: 当前请求使用的异步数据库会话。
+        user: 需要修改密码的用户对象。
+        password_hash: Service 层生成的新密码哈希。
+
+    Returns:
+        提交并刷新后的用户对象。
+    """
+
+    # CRUD 只接收密码哈希，避免数据库操作层接触明文密码。
+    user.password_hash = password_hash
+
+    # 提交修改后刷新对象，取得数据库保存的最新字段值。
+    await db.commit()
+    await db.refresh(user)
+
+    return user
+
+
+# endregion

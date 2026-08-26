@@ -47,3 +47,15 @@ class UserUpdateRequest(BaseModel):
 
 
 # endregion
+
+
+# region 用户密码更新请求
+class UserPasswordUpdateRequest(BaseModel):
+    """修改密码接口接收的旧密码和新密码。"""
+
+    # Python 内部统一使用蛇形命名；新密码至少需要 8 个字符。
+    old_password: str = Field(..., min_length=1, max_length=50, description="旧密码")
+    new_password: str = Field(..., min_length=8, max_length=50, description="新密码")
+
+
+# endregion

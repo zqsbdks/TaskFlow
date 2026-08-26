@@ -14,9 +14,15 @@ from app.crud.user import (
     get_user_by_id,
     get_user_by_username,
     update_user,
+    update_user_password,
 )
 from app.models.user import User
-from app.schemas.user_request import UserLoginRequest, UserRegisterRequest, UserUpdateRequest
+from app.schemas.user_request import (
+    UserLoginRequest,
+    UserPasswordUpdateRequest,
+    UserRegisterRequest,
+    UserUpdateRequest,
+)
 from app.schemas.user_response import UserLoginInfo, UserLoginResponse
 
 
@@ -242,9 +248,61 @@ async def update_user_service(
 # endregion
 
 
+# region 用户密码更新服务
+async def update_user_password_service(
+    db: AsyncSession,
+    current_user: User,
+    user_data: UserPasswordUpdateRequest,
+) -> User:
+    """验证旧密码、哈希新密码，并更新当前用户的密码。
+
+    Args:
+        db: 当前请求使用的异步数据库会话。
+        current_user: 由访问令牌确定的当前登录用户。
+        user_data: 包含旧密码和新密码的请求数据。
+
+    Returns:
+        密码更新成功后的用户对象。
+
+    Raises:
+        HTTPException: 旧密码错误或新旧密码相同时返回 HTTP 400。
+    """
+
+    # 必须先用当前用户自己的密码哈希验证旧密码，防止越权修改。
+    old_password_is_valid = verify_password(
+        user_data.old_password,
+        current_user.password_hash,
+    )
+    if not old_password_is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="旧密码错误",
+        )
+
+    # 新旧密码相同时没有实际修改意义，直接拒绝本次请求。
+    if user_data.new_password == user_data.old_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="新密码不能与旧密码相同",
+        )
+
+    # 明文新密码只在 Service 中短暂存在，写入数据库前转换为不可逆哈希。
+    password_hash = hash_password(user_data.new_password)
+
+    return await update_user_password(
+        db=db,
+        user=current_user,
+        password_hash=password_hash,
+    )
+
+
+# endregion
+
+
 __all__ = [
     "get_current_user_service",
     "login_user_service",
     "register_user_service",
+    "update_user_password_service",
     "update_user_service",
 ]

@@ -1,12 +1,12 @@
 """用户登录 Service 的单元测试。"""
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from fastapi import HTTPException
 
 from app.models.user import User
-from app.schemas.user_request import UserLoginRequest
+from app.schemas.user_request import UserLoginRequest, UserPasswordUpdateRequest
 from app.services import user as user_service
 
 
@@ -136,6 +136,82 @@ async def test_current_user_service_rejects_inactive_user(monkeypatch) -> None:
 
     assert exc_info.value.status_code == 403
     assert exc_info.value.detail == "账号已被停用"
+
+
+# endregion
+
+
+# region 用户密码更新 Service 测试
+@pytest.mark.asyncio
+async def test_update_user_password_service_updates_hashed_password(monkeypatch) -> None:
+    """旧密码正确且新密码不同时，应保存哈希后的新密码。"""
+
+    user = build_user()
+    verify_password = Mock(return_value=True)
+    update_password = AsyncMock(return_value=user)
+    monkeypatch.setattr(user_service, "verify_password", verify_password)
+    monkeypatch.setattr(user_service, "hash_password", lambda _: "new-password-hash")
+    monkeypatch.setattr(user_service, "update_user_password", update_password)
+
+    result = await user_service.update_user_password_service(
+        db=AsyncMock(),
+        current_user=user,
+        user_data=UserPasswordUpdateRequest(
+            old_password="old-password",
+            new_password="new-password",
+        ),
+    )
+
+    assert result is user
+    verify_password.assert_called_once_with("old-password", user.password_hash)
+    update_password.assert_awaited_once()
+    assert update_password.await_args.kwargs["password_hash"] == "new-password-hash"
+
+
+@pytest.mark.asyncio
+async def test_update_user_password_service_rejects_wrong_old_password(monkeypatch) -> None:
+    """旧密码错误时应返回 400，且不能执行数据库更新。"""
+
+    update_password = AsyncMock()
+    monkeypatch.setattr(user_service, "verify_password", lambda *_: False)
+    monkeypatch.setattr(user_service, "update_user_password", update_password)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await user_service.update_user_password_service(
+            db=AsyncMock(),
+            current_user=build_user(),
+            user_data=UserPasswordUpdateRequest(
+                old_password="wrong-password",
+                new_password="new-password",
+            ),
+        )
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "旧密码错误"
+    update_password.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_update_user_password_service_rejects_same_password(monkeypatch) -> None:
+    """新旧密码相同时应返回 400，且不能执行数据库更新。"""
+
+    update_password = AsyncMock()
+    monkeypatch.setattr(user_service, "verify_password", lambda *_: True)
+    monkeypatch.setattr(user_service, "update_user_password", update_password)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await user_service.update_user_password_service(
+            db=AsyncMock(),
+            current_user=build_user(),
+            user_data=UserPasswordUpdateRequest(
+                old_password="same-password",
+                new_password="same-password",
+            ),
+        )
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "新密码不能与旧密码相同"
+    update_password.assert_not_awaited()
 
 
 # endregion

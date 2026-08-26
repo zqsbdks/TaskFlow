@@ -7,14 +7,24 @@ from app.dependencies.auth import get_current_user
 from app.dependencies.db import get_db
 from app.models.user import User
 from app.schemas.base import ResponseModel
-from app.schemas.user_request import UserLoginRequest, UserRegisterRequest, UserUpdateRequest
+from app.schemas.user_request import (
+    UserLoginRequest,
+    UserPasswordUpdateRequest,
+    UserRegisterRequest,
+    UserUpdateRequest,
+)
 from app.schemas.user_response import (
     UserInfo,
     UserLoginResponse,
     UserRegisterResponse,
     UserUpdataResponse,
 )
-from app.services.user import login_user_service, register_user_service, update_user_service
+from app.services.user import (
+    login_user_service,
+    register_user_service,
+    update_user_password_service,
+    update_user_service,
+)
 
 # 用户领域的所有接口共享 /users 路径前缀和 Swagger 分组标签。
 user_router = APIRouter(tags=["用户"], prefix="/users")
@@ -125,6 +135,28 @@ async def update_user_info(
         message="更新成功",
         data=user,
     )
+
+
+# endregion
+
+
+# region 用户密码更新
+@user_router.put("/password", response_model=ResponseModel)
+async def update_user_password(
+    user_data: UserPasswordUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """验证旧密码并修改当前登录用户的密码。"""
+
+    # 密码验证、哈希及数据库更新统一交给 Service，Router 只返回操作结果。
+    await update_user_password_service(
+        db=db,
+        current_user=current_user,
+        user_data=user_data,
+    )
+
+    return ResponseModel(message="密码更新成功")
 
 
 # endregion
