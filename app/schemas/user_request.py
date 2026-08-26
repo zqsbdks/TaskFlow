@@ -3,6 +3,7 @@
 from pydantic import BaseModel, EmailStr, Field
 
 
+# region 用户注册请求
 class UserRegisterRequest(BaseModel):
     """注册接口接收的用户输入。
 
@@ -13,3 +14,17 @@ class UserRegisterRequest(BaseModel):
     username: str = Field(..., max_length=50, description="用户名")
     email: EmailStr = Field(..., max_length=255, description="邮箱")
     password: str = Field(..., max_length=50, description="密码")
+
+
+# endregion
+
+
+# region 用户登录请求
+class UserLoginRequest(BaseModel):
+    """登录接口接收的邮箱和明文密码。"""
+
+    email: EmailStr = Field(..., max_length=255, description="邮箱")
+    password: str = Field(..., max_length=50, description="密码")
+
+
+# endregion

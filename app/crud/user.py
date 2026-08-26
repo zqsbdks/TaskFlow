@@ -9,28 +9,50 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
 
 
-async def get_user_by_username_or_email(
+# region 用户查询
+async def get_user_by_username(
     db: AsyncSession,
     username: str,
-    email: str,
 ) -> User | None:
-    """根据用户名或邮箱查询已存在的用户。
+    """根据用户名查询已存在的用户。
 
     Args:
         db: 当前请求使用的异步数据库会话。
         username: 待检查的用户名。
-        email: 待检查的邮箱地址。
 
     Returns:
-        查询到的用户；用户名和邮箱均未占用时返回 ``None``。
+        查询到的用户；用户名未被占用时返回 ``None``。
     """
 
-    # 使用一次查询同时覆盖两个唯一字段，减少注册前的数据库往返次数。
-    statement = select(User).where((User.username == username) | (User.email == email))
+    statement = select(User).where(User.username == username)
 
     return await db.scalar(statement)
 
 
+async def get_user_by_email(
+    db: AsyncSession,
+    email: str,
+) -> User | None:
+    """根据邮箱查询已存在的用户。
+
+    Args:
+        db: 当前请求使用的异步数据库会话。
+        email: 待检查的邮箱地址。
+
+    Returns:
+        查询到的用户；邮箱未被占用时返回 ``None``。
+    """
+
+    # 登录只需要先按唯一邮箱定位用户；密码必须用安全模块和该用户的哈希单独验证。
+    statement = select(User).where(User.email == email)
+
+    return await db.scalar(statement)
+
+
+# endregion
+
+
+# region 用户创建
 async def create_user(
     db: AsyncSession,
     username: str,
@@ -59,3 +81,6 @@ async def create_user(
     await db.refresh(new_user)
 
     return new_user
+
+
+# endregion
