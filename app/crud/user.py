@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
+from app.schemas.user_request import UserUpdateRequest
 
 
 # region 用户查询
@@ -100,6 +101,36 @@ async def create_user(
     await db.refresh(new_user)
 
     return new_user
+
+
+# endregion
+
+
+# region 用户信息更新
+async def update_user(db: AsyncSession, user: User, user_data: UserUpdateRequest) -> User:
+    """更新用户提交的字段，并返回数据库中的最新用户对象。
+
+    Args:
+        db: 当前请求使用的异步数据库会话。
+        user: 需要更新的用户对象。
+        user_data: 仅包含本次待修改字段的请求数据。
+
+    Returns:
+        提交并刷新后的用户对象。
+    """
+
+    # 可选字段没有提交时值为 None，因此只修改实际传入的字段。
+    if user_data.username is not None:
+        user.username = user_data.username
+
+    if user_data.email is not None:
+        user.email = user_data.email
+
+    # 提交修改后刷新对象，取得数据库保存的最新字段值。
+    await db.commit()
+    await db.refresh(user)
+
+    return user
 
 
 # endregion

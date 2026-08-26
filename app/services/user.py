@@ -8,9 +8,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password, verify_password
 from app.core.token import create_access_token
-from app.crud.user import create_user, get_user_by_email, get_user_by_id, get_user_by_username
+from app.crud.user import (
+    create_user,
+    get_user_by_email,
+    get_user_by_id,
+    get_user_by_username,
+    update_user,
+)
 from app.models.user import User
-from app.schemas.user_request import UserLoginRequest, UserRegisterRequest
+from app.schemas.user_request import UserLoginRequest, UserRegisterRequest, UserUpdateRequest
 from app.schemas.user_response import UserLoginInfo, UserLoginResponse
 
 
@@ -181,4 +187,64 @@ async def get_current_user_service(
 # endregion
 
 
-__all__ = ["get_current_user_service", "login_user_service", "register_user_service"]
+# region 用户信息更新服务
+async def update_user_service(
+    db: AsyncSession,
+    current_user: User,
+    user_data: UserUpdateRequest,
+) -> User:
+    """检查用户名和邮箱是否冲突，然后更新当前用户信息。
+
+    Args:
+        db: 当前请求使用的异步数据库会话。
+        current_user: 由访问令牌确定的当前登录用户。
+        user_data: 本次需要更新的用户名或邮箱。
+
+    Returns:
+        更新成功后的用户对象。
+
+    Raises:
+        HTTPException: 用户名或邮箱已被其他用户占用时返回 HTTP 409。
+    """
+
+    # 只有请求中传入了新用户名时才查询；当前用户继续使用原用户名不算冲突。
+    if user_data.username is not None:
+        existing_user = await get_user_by_username(
+            db=db,
+            username=user_data.username,
+        )
+        if existing_user is not None and existing_user.id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="用户名已存在",
+            )
+
+    # 邮箱同样只禁止被其他用户占用，允许当前用户保留自己的邮箱。
+    if user_data.email is not None:
+        existing_user = await get_user_by_email(
+            db=db,
+            email=user_data.email,
+        )
+        if existing_user is not None and existing_user.id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="邮箱已被注册",
+            )
+
+    # 业务校验通过后，交由 CRUD 提交字段修改。
+    return await update_user(
+        db=db,
+        user=current_user,
+        user_data=user_data,
+    )
+
+
+# endregion
+
+
+__all__ = [
+    "get_current_user_service",
+    "login_user_service",
+    "register_user_service",
+    "update_user_service",
+]

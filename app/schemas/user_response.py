@@ -27,6 +27,8 @@ class UserLoginInfo(BaseModel):
     username: str = Field(..., description="用户名")
     email: str = Field(..., description="邮箱")
     role: str = Field(..., description="角色")
+    # 允许 FastAPI 直接把 SQLAlchemy User 对象转换成该响应模型。
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserLoginResponse(BaseModel):
@@ -36,6 +38,9 @@ class UserLoginResponse(BaseModel):
     token: str = Field(..., description="访问令牌")
     # 仅包含前端展示和权限判断需要的公开字段，不包含密码哈希。
     userinfo: UserLoginInfo
+
+    # 允许 FastAPI 直接把 SQLAlchemy User 对象转换成该响应模型。
+    model_config = ConfigDict(from_attributes=True)
 
 
 # endregion
@@ -50,6 +55,25 @@ class UserInfo(BaseModel):
     email: str = Field(..., description="邮箱")
     role: str = Field(..., description="角色")
     is_active: bool = Field(..., description="账号是否启用")
+
+    # 允许 FastAPI 直接把 SQLAlchemy User 对象转换成该响应模型。
+    model_config = ConfigDict(from_attributes=True)
+
+
+# endregion
+
+
+# region 用户信息更新响应
+class UserUpdataResponse(BaseModel):
+    """用户信息更新成功后允许返回给客户端的公开字段。"""
+
+    id: int = Field(..., description="用户ID")
+    username: str = Field(..., description="用户名")
+    email: str = Field(..., description="邮箱")
+    role: str = Field(..., description="角色")
+
+    # 允许 FastAPI 直接把 SQLAlchemy User 对象转换成该响应模型。
+    model_config = ConfigDict(from_attributes=True)
 
 
 # endregion

@@ -28,3 +28,22 @@ class UserLoginRequest(BaseModel):
 
 
 # endregion
+
+
+# region 用户信息更新请求
+class UserUpdateRequest(BaseModel):
+    """用户更新接口接收的用户输入。
+
+    Pydantic 会在进入 Router 前检查字段类型、长度以及邮箱格式。
+    """
+
+    # 两个字段均为可选值，客户端可以只提交本次需要修改的字段。
+    username: str | None = Field(default=None, max_length=50, description="用户名")
+    email: EmailStr | None = Field(
+        default=None,
+        max_length=255,
+        description="邮箱",
+    )
+
+
+# endregion
