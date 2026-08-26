@@ -6,7 +6,12 @@
 
 from fastapi import APIRouter
 
+from app.routers.user import user_router
+
 # api_router：汇总各业务路由的顶层路由器，最终在 app.main 中添加 /api/v1 前缀。
 api_router = APIRouter()
+
+# 将用户路由纳入顶层聚合路由；main.py 会统一添加 API 版本前缀。
+api_router.include_router(user_router)
 
 __all__ = ["api_router"]
