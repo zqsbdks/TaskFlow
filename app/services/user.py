@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password, verify_password
 from app.core.token import create_access_token
-from app.crud.user import create_user, get_user_by_email, get_user_by_username
+from app.crud.user import create_user, get_user_by_email, get_user_by_id, get_user_by_username
 from app.models.user import User
 from app.schemas.user_request import UserLoginRequest, UserRegisterRequest
 from app.schemas.user_response import UserLoginInfo, UserLoginResponse
@@ -136,4 +136,49 @@ async def login_user_service(
 # endregion
 
 
-__all__ = ["login_user_service", "register_user_service"]
+# region 当前用户服务
+async def get_current_user_service(
+    db: AsyncSession,
+    user_id: int,
+) -> User:
+    """查询并校验 Token 所属的当前用户。
+
+    Args:
+        db: 当前请求使用的异步数据库会话。
+        user_id: 从 JWT ``sub`` 声明中解析出的用户主键。
+
+    Returns:
+        存在且处于启用状态的用户对象。
+
+    Raises:
+        HTTPException: 用户不存在时返回 401，账号停用时返回 403。
+    """
+
+    # CRUD 只负责按主键查询；用户是否允许继续访问由 Service 判断。
+    current_user = await get_user_by_id(
+        db=db,
+        user_id=user_id,
+    )
+
+    # Token 签发后用户可能被删除，旧 Token 此时不能继续访问受保护接口。
+    if current_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="访问令牌对应的用户不存在",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # 即使 Token 尚未过期，停用账号也必须立即失去接口访问权限。
+    if not current_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="账号已被停用",
+        )
+
+    return current_user
+
+
+# endregion
+
+
+__all__ = ["get_current_user_service", "login_user_service", "register_user_service"]

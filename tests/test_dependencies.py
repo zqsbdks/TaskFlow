@@ -1,11 +1,15 @@
 """验证 JWT Bearer 认证依赖的成功与缺少凭据分支。"""
 
+from unittest.mock import ANY, AsyncMock
+
 import pytest
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
 from app.core.token import create_access_token
+from app.dependencies import auth as auth_dependencies
 from app.dependencies.auth import get_current_token_payload
+from app.models.user import User
 
 
 @pytest.mark.asyncio
@@ -37,3 +41,54 @@ async def test_current_token_payload_rejects_missing_credentials() -> None:
         await get_current_token_payload(None)
 
     assert exc_info.value.status_code == 401
+
+
+# region 获取当前用户依赖测试
+def build_user(*, is_active: bool = True) -> User:
+    """构造无需连接数据库的认证测试用户。"""
+
+    return User(
+        id=1,
+        username="test-user",
+        email="user@example.com",
+        password_hash="stored-password-hash",
+        role="user",
+        is_active=is_active,
+    )
+
+
+@pytest.mark.asyncio
+async def test_current_user_returns_user_from_token_subject(monkeypatch) -> None:
+    """有效的用户 ID 应转换后交给当前用户 Service。"""
+
+    user = build_user()
+    get_current_user_service = AsyncMock(return_value=user)
+    monkeypatch.setattr(
+        auth_dependencies,
+        "get_current_user_service",
+        get_current_user_service,
+    )
+
+    result = await auth_dependencies.get_current_user(
+        db=AsyncMock(),
+        token_payload={"sub": "1"},
+    )
+
+    assert result is user
+    get_current_user_service.assert_awaited_once_with(db=ANY, user_id=1)
+
+
+@pytest.mark.asyncio
+async def test_current_user_rejects_invalid_subject() -> None:
+    """无法转换成用户主键的 sub 应返回 401。"""
+
+    with pytest.raises(HTTPException) as exc_info:
+        await auth_dependencies.get_current_user(
+            db=AsyncMock(),
+            token_payload={"sub": "not-an-integer"},
+        )
+
+    assert exc_info.value.status_code == 401
+
+
+# endregion

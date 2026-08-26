@@ -10,6 +10,25 @@ from app.models.user import User
 
 
 # region 用户查询
+async def get_user_by_id(
+    db: AsyncSession,
+    user_id: int,
+) -> User | None:
+    """根据主键查询用户。
+
+    Args:
+        db: 当前请求使用的异步数据库会话。
+        user_id: JWT 的 ``sub`` 声明所指向的用户主键。
+
+    Returns:
+        查询到的用户；主键不存在时返回 ``None``。
+    """
+
+    statement = select(User).where(User.id == user_id)
+
+    return await db.scalar(statement)
+
+
 async def get_user_by_username(
     db: AsyncSession,
     username: str,

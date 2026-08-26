@@ -3,10 +3,12 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.dependencies.auth import get_current_user
 from app.dependencies.db import get_db
+from app.models.user import User
 from app.schemas.base import ResponseModel
 from app.schemas.user_request import UserLoginRequest, UserRegisterRequest
-from app.schemas.user_response import UserLoginResponse, UserRegisterResponse
+from app.schemas.user_response import UserInfo, UserLoginResponse, UserRegisterResponse
 from app.services.user import login_user_service, register_user_service
 
 # 用户领域的所有接口共享 /users 路径前缀和 Swagger 分组标签。
@@ -76,6 +78,29 @@ async def login_user(
         code=200,
         message="登录成功",
         data=login_result,
+    )
+
+
+# endregion
+
+
+# region 当前用户信息
+@user_router.get("/info", response_model=ResponseModel[UserInfo])
+async def get_user_info(
+    current_user: User = Depends(get_current_user),
+):
+    """返回当前有效 Token 对应的用户公开信息。"""
+
+    return ResponseModel(
+        code=200,
+        message="获取用户信息成功",
+        data=UserInfo(
+            id=current_user.id,
+            username=current_user.username,
+            email=current_user.email,
+            role=current_user.role,
+            is_active=current_user.is_active,
+        ),
     )
 
 

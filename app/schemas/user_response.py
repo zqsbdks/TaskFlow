@@ -39,3 +39,17 @@ class UserLoginResponse(BaseModel):
 
 
 # endregion
+
+
+# region 当前用户信息响应
+class UserInfo(BaseModel):
+    """用户信息。"""
+
+    id: int = Field(..., description="用户ID")
+    username: str = Field(..., description="用户名")
+    email: str = Field(..., description="邮箱")
+    role: str = Field(..., description="角色")
+    is_active: bool = Field(..., description="账号是否启用")
+
+
+# endregion

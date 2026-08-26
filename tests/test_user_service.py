@@ -83,3 +83,59 @@ async def test_login_user_service_rejects_inactive_user(monkeypatch) -> None:
 
     assert exc_info.value.status_code == 403
     assert exc_info.value.detail == "账号已被停用"
+
+
+# region 当前用户 Service 测试
+@pytest.mark.asyncio
+async def test_current_user_service_returns_active_user(monkeypatch) -> None:
+    """用户存在且启用时应返回对应用户对象。"""
+
+    user = build_user()
+    get_user_by_id = AsyncMock(return_value=user)
+    monkeypatch.setattr(user_service, "get_user_by_id", get_user_by_id)
+
+    result = await user_service.get_current_user_service(
+        db=AsyncMock(),
+        user_id=user.id,
+    )
+
+    assert result is user
+
+
+@pytest.mark.asyncio
+async def test_current_user_service_rejects_missing_user(monkeypatch) -> None:
+    """Token 对应用户不存在时应返回 401。"""
+
+    monkeypatch.setattr(user_service, "get_user_by_id", AsyncMock(return_value=None))
+
+    with pytest.raises(HTTPException) as exc_info:
+        await user_service.get_current_user_service(
+            db=AsyncMock(),
+            user_id=1,
+        )
+
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail == "访问令牌对应的用户不存在"
+
+
+@pytest.mark.asyncio
+async def test_current_user_service_rejects_inactive_user(monkeypatch) -> None:
+    """Token 对应账号停用时应返回 403。"""
+
+    monkeypatch.setattr(
+        user_service,
+        "get_user_by_id",
+        AsyncMock(return_value=build_user(is_active=False)),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await user_service.get_current_user_service(
+            db=AsyncMock(),
+            user_id=1,
+        )
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == "账号已被停用"
+
+
+# endregion
