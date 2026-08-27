@@ -48,3 +48,13 @@ def test_not_found_uses_standard_response() -> None:
         "message": "Not Found",
         "data": None,
     }
+
+
+def test_task_router_is_registered() -> None:
+    """应用生成的 OpenAPI 文档中应包含创建任务接口。"""
+
+    with TestClient(create_app()) as client:
+        response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    assert "/api/v1/tasks" in response.json()["paths"]
