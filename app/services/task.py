@@ -15,10 +15,16 @@ from app.crud.task import (
     get_task_by_title,
     get_task_list,
     update_task,
+    update_task_status,
 )
 from app.models.task import Task
 from app.models.user import User
-from app.schemas.task_request import TaskCreateRequest, TaskListRequest, TaskUpdateRequest
+from app.schemas.task_request import (
+    TaskCreateRequest,
+    TaskListRequest,
+    TaskStatusUpdateRequest,
+    TaskUpdateRequest,
+)
 from app.schemas.task_response import TaskCreateResponse, TaskListResponse
 
 
@@ -175,8 +181,8 @@ async def update_task_service(
             detail="没有提供需要更新的字段",
         )
 
-    # title、status 和 priority 对应数据库非空字段，不能显式更新为 null。
-    for field_name in ("title", "status", "priority"):
+    # title 和 priority 对应数据库非空字段，不能显式更新为 null。
+    for field_name in ("title", "priority"):
         if field_name in update_values and update_values[field_name] is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -196,13 +202,6 @@ async def update_task_service(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="任务标题已存在",
             )
-
-    # 首次改为已完成时记录完成时间；改为其他状态时清空完成时间。
-    new_status = update_values.get("status")
-    if new_status == "completed" and task.status != "completed":
-        update_values["completed_at"] = datetime.now()
-    elif isinstance(new_status, str) and new_status != "completed":
-        update_values["completed_at"] = None
 
     return await update_task(
         db=db,
@@ -250,10 +249,69 @@ async def delete_task_service(
 # endregion
 
 
+# region 任务状态更新服务
+async def update_task_status_service(
+    db: AsyncSession,
+    current_user: User,
+    task_id: int,
+    status_data: TaskStatusUpdateRequest,
+) -> Task:
+    """校验任务归属并更新任务状态及完成时间。
+
+    Args:
+        db: 当前请求使用的异步数据库会话。
+        current_user: 由访问令牌确定的当前登录用户。
+        task_id: 路径参数中的任务主键。
+        status_data: 请求体中必传的新任务状态。
+
+    Returns:
+        状态更新成功后的任务对象。
+
+    Raises:
+        HTTPException: 任务不存在或状态没有发生变化时返回错误。
+    """
+
+    # 同时按 task_id 和当前用户 ID 查询，禁止修改其他用户的任务状态。
+    task = await get_task_by_id(
+        db=db,
+        user_id=current_user.id,
+        task_id=task_id,
+    )
+    if task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="任务不存在",
+        )
+
+    # 检查原状态和新状态是否一样，如果一样则不更新
+    if task.status == status_data.status:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="任务状态未改变",
+        )
+
+    # 已完成状态记录当前时间；其他状态清空旧的完成时间。
+    if status_data.status == "completed":
+        completed_at = datetime.now()
+    else:
+        completed_at = None
+
+    return await update_task_status(
+        db=db,
+        task=task,
+        status_value=status_data.status,
+        completed_at=completed_at,
+    )
+
+
+# endregion
+
+
 __all__ = [
     "create_task_service",
     "delete_task_service",
     "get_task_detail_service",
     "get_task_list_service",
     "update_task_service",
+    "update_task_status_service",
 ]

@@ -159,6 +159,28 @@ async def delete_task(db: AsyncSession, task: Task) -> None:
 # endregion
 
 
+# region 任务状态更新
+async def update_task_status(
+    db: AsyncSession,
+    task: Task,
+    status_value: str,
+    completed_at: datetime | None,
+) -> Task:
+    """保存任务的新状态和对应的完成时间。"""
+
+    # Service 已决定状态对应的完成时间，CRUD 只负责写入数据库。
+    task.status = status_value
+    task.completed_at = completed_at
+
+    await db.commit()
+    await db.refresh(task)
+
+    return task
+
+
+# endregion
+
+
 __all__ = [
     "create_task",
     "delete_task",
@@ -166,4 +188,5 @@ __all__ = [
     "get_task_by_title",
     "get_task_list",
     "update_task",
+    "update_task_status",
 ]

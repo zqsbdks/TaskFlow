@@ -9,7 +9,12 @@ from pydantic import ValidationError
 
 from app.models.task import Task
 from app.models.user import User
-from app.schemas.task_request import TaskCreateRequest, TaskListRequest, TaskUpdateRequest
+from app.schemas.task_request import (
+    TaskCreateRequest,
+    TaskListRequest,
+    TaskStatusUpdateRequest,
+    TaskUpdateRequest,
+)
 from app.services import task as task_service
 
 
@@ -165,27 +170,6 @@ async def test_update_task_service_only_updates_submitted_fields(monkeypatch) ->
 
 
 @pytest.mark.asyncio
-async def test_update_task_service_sets_completed_time(monkeypatch) -> None:
-    """任务首次更新为已完成状态时，应同时写入完成时间。"""
-
-    task = build_task()
-    update_task = AsyncMock(return_value=task)
-    monkeypatch.setattr(task_service, "get_task_by_id", AsyncMock(return_value=task))
-    monkeypatch.setattr(task_service, "update_task", update_task)
-
-    await task_service.update_task_service(
-        db=AsyncMock(),
-        current_user=build_user(),
-        task_id=task.id,
-        update_data=TaskUpdateRequest(status="completed"),
-    )
-
-    update_values = update_task.await_args.kwargs["update_values"]
-    assert update_values["status"] == "completed"
-    assert isinstance(update_values["completed_at"], datetime)
-
-
-@pytest.mark.asyncio
 async def test_update_task_service_rejects_empty_request(monkeypatch) -> None:
     """请求体没有任何更新字段时，应返回 400。"""
 
@@ -223,6 +207,93 @@ async def test_update_task_service_rejects_missing_task(monkeypatch) -> None:
 
     assert exc_info.value.status_code == 404
     assert exc_info.value.detail == "没有找到任务"
+
+
+# endregion
+
+
+# region 任务状态更新 Service 测试
+@pytest.mark.asyncio
+async def test_update_task_status_service_sets_completed_time(monkeypatch) -> None:
+    """任务改为已完成时，应同时保存状态和完成时间。"""
+
+    task = build_task()
+    update_status = AsyncMock(return_value=task)
+    monkeypatch.setattr(task_service, "get_task_by_id", AsyncMock(return_value=task))
+    monkeypatch.setattr(task_service, "update_task_status", update_status)
+
+    result = await task_service.update_task_status_service(
+        db=AsyncMock(),
+        current_user=build_user(),
+        task_id=task.id,
+        status_data=TaskStatusUpdateRequest(status="completed"),
+    )
+
+    assert result is task
+    assert update_status.await_args.kwargs["status_value"] == "completed"
+    assert isinstance(update_status.await_args.kwargs["completed_at"], datetime)
+
+
+@pytest.mark.asyncio
+async def test_update_task_status_service_clears_completed_time(monkeypatch) -> None:
+    """任务改为非完成状态时，应清空原来的完成时间。"""
+
+    task = build_task()
+    task.status = "completed"
+    task.completed_at = datetime(2026, 8, 27, 12, 0, 0)
+    update_status = AsyncMock(return_value=task)
+    monkeypatch.setattr(task_service, "get_task_by_id", AsyncMock(return_value=task))
+    monkeypatch.setattr(task_service, "update_task_status", update_status)
+
+    await task_service.update_task_status_service(
+        db=AsyncMock(),
+        current_user=build_user(),
+        task_id=task.id,
+        status_data=TaskStatusUpdateRequest(status="in_progress"),
+    )
+
+    assert update_status.await_args.kwargs["status_value"] == "in_progress"
+    assert update_status.await_args.kwargs["completed_at"] is None
+
+
+@pytest.mark.asyncio
+async def test_update_task_status_service_rejects_unchanged_status(monkeypatch) -> None:
+    """新旧状态相同时应返回 400，且不能写入数据库。"""
+
+    task = build_task()
+    update_status = AsyncMock()
+    monkeypatch.setattr(task_service, "get_task_by_id", AsyncMock(return_value=task))
+    monkeypatch.setattr(task_service, "update_task_status", update_status)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await task_service.update_task_status_service(
+            db=AsyncMock(),
+            current_user=build_user(),
+            task_id=task.id,
+            status_data=TaskStatusUpdateRequest(status=task.status),
+        )
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "任务状态未改变"
+    update_status.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_update_task_status_service_rejects_missing_task(monkeypatch) -> None:
+    """任务不存在或不属于当前用户时，应返回 404。"""
+
+    monkeypatch.setattr(task_service, "get_task_by_id", AsyncMock(return_value=None))
+
+    with pytest.raises(HTTPException) as exc_info:
+        await task_service.update_task_status_service(
+            db=AsyncMock(),
+            current_user=build_user(),
+            task_id=999,
+            status_data=TaskStatusUpdateRequest(status="completed"),
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "任务不存在"
 
 
 # endregion

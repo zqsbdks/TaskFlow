@@ -80,9 +80,26 @@ class TaskUpdateResponse(BaseModel):
 # endregion
 
 
+# region 任务状态更新响应
+class TaskStatusUpdateResponse(BaseModel):
+    """任务状态更新成功后返回的状态相关字段。"""
+
+    id: int = Field(..., description="任务ID")
+    status: str = Field(..., description="任务状态")
+    completed_at: datetime | None = Field(default=None, description="任务完成时间")
+    updated_at: datetime = Field(..., description="更新时间")
+
+    # 允许 Pydantic 直接从 SQLAlchemy Task 对象读取响应字段。
+    model_config = ConfigDict(from_attributes=True)
+
+
+# endregion
+
+
 __all__ = [
     "TaskCreateResponse",
     "TaskDetailResponse",
     "TaskListResponse",
+    "TaskStatusUpdateResponse",
     "TaskUpdateResponse",
 ]

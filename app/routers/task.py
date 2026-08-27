@@ -9,11 +9,17 @@ from app.dependencies.auth import get_current_user
 from app.dependencies.db import get_db
 from app.models.user import User
 from app.schemas.base import ResponseModel
-from app.schemas.task_request import TaskCreateRequest, TaskListRequest, TaskUpdateRequest
+from app.schemas.task_request import (
+    TaskCreateRequest,
+    TaskListRequest,
+    TaskStatusUpdateRequest,
+    TaskUpdateRequest,
+)
 from app.schemas.task_response import (
     TaskCreateResponse,
     TaskDetailResponse,
     TaskListResponse,
+    TaskStatusUpdateResponse,
     TaskUpdateResponse,
 )
 from app.services.task import (
@@ -22,6 +28,7 @@ from app.services.task import (
     get_task_detail_service,
     get_task_list_service,
     update_task_service,
+    update_task_status_service,
 )
 
 # 任务领域接口统一使用 /tasks 路径前缀和中文 Swagger 标签。
@@ -151,6 +158,34 @@ async def delete_task(
 
     # 删除接口不返回任务数据，ResponseModel.data 使用默认值 None。
     return ResponseModel(message="删除任务成功")
+
+
+# endregion
+
+
+# region 任务状态更新
+@task_router.put("/status/{task_id}", response_model=ResponseModel[TaskStatusUpdateResponse])
+async def update_task_status(
+    status_data: TaskStatusUpdateRequest,
+    task_id: int = Path(..., ge=1, description="任务ID"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """更新当前用户拥有的任务状态。"""
+
+    # Service 负责权限检查以及 completed_at 的设置或清空。
+    task = await update_task_status_service(
+        task_id=task_id,
+        db=db,
+        current_user=current_user,
+        status_data=status_data,
+    )
+
+    # TaskStatusUpdateResponse 只返回状态更新后需要的字段。
+    return ResponseModel(
+        message="更新任务状态成功",
+        data=task,
+    )
 
 
 # endregion

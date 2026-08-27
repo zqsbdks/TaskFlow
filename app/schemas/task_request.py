@@ -49,10 +49,6 @@ class TaskUpdateRequest(BaseModel):
     # 字段未提交时不会更新；description 和 due_date 可以显式传 null 清空。
     title: str | None = Field(default=None, min_length=1, max_length=200, description="任务标题")
     description: str | None = Field(default=None, max_length=200, description="任务描述")
-    status: Literal["pending", "in_progress", "completed", "cancelled"] | None = Field(
-        default=None,
-        description="任务状态",
-    )
     priority: int | None = Field(default=None, ge=1, le=5, description="任务优先级（1-5）")
     due_date: datetime | None = Field(default=None, description="任务截止时间")
 
@@ -60,4 +56,23 @@ class TaskUpdateRequest(BaseModel):
 # endregion
 
 
-__all__ = ["TaskCreateRequest", "TaskListRequest", "TaskUpdateRequest"]
+# region 任务状态更新请求
+class TaskStatusUpdateRequest(BaseModel):
+    """任务状态更新接口接收的新状态。"""
+
+    # 专用状态接口必须提交状态，不允许省略或传入 null。
+    status: Literal["pending", "in_progress", "completed", "cancelled"] = Field(
+        ...,
+        description="任务状态",
+    )
+
+
+# endregion
+
+
+__all__ = [
+    "TaskCreateRequest",
+    "TaskListRequest",
+    "TaskStatusUpdateRequest",
+    "TaskUpdateRequest",
+]

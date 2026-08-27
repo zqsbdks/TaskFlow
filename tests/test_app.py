@@ -61,4 +61,5 @@ def test_task_router_is_registered() -> None:
     assert "/api/v1/tasks/detail/{task_id}" in response.json()["paths"]
     assert "/api/v1/tasks/list" in response.json()["paths"]
     assert "put" in response.json()["paths"]["/api/v1/tasks/update/{task_id}"]
+    assert "put" in response.json()["paths"]["/api/v1/tasks/status/{task_id}"]
     assert "delete" in response.json()["paths"]["/api/v1/tasks/delete/{task_id}"]
