@@ -5,7 +5,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.task import Task
@@ -64,4 +64,49 @@ async def create_task(
 # endregion
 
 
-__all__ = ["create_task", "get_task_by_title"]
+# region 任务列表查询
+async def get_task_list(
+    db: AsyncSession,
+    user_id: int,
+    offset: int,
+    limit: int,
+    task_status: str | None,
+    priority: int | None,
+) -> tuple[list[Task], int]:
+    """分页查询当前用户的任务，并返回符合条件的总条数。"""
+
+    # 一条语句负责查询任务列表，另一条语句负责统计任务总数。
+    task_statement = select(Task).where(Task.user_id == user_id)
+    count_statement = select(func.count(Task.id)).where(Task.user_id == user_id)
+
+    # 如果传入了任务状态，两条查询都增加相同的状态条件。
+    if task_status is not None:
+        task_statement = task_statement.where(Task.status == task_status)
+        count_statement = count_statement.where(Task.status == task_status)
+
+    # 如果传入了优先级，两条查询都增加相同的优先级条件。
+    if priority is not None:
+        task_statement = task_statement.where(Task.priority == priority)
+        count_statement = count_statement.where(Task.priority == priority)
+
+    # 先执行数量查询；数据库没有返回数字时按 0 处理。
+    count_result = await db.scalar(count_statement)
+    if count_result is None:
+        total = 0
+    else:
+        total = count_result
+
+    # 给任务列表增加排序和分页条件，再执行查询。
+    task_statement = (
+        task_statement.order_by(Task.created_at.desc(), Task.id.desc()).offset(offset).limit(limit)
+    )
+    task_result = await db.scalars(task_statement)
+    tasks = list(task_result.all())
+
+    return tasks, total
+
+
+# endregion
+
+
+__all__ = ["create_task", "get_task_by_title", "get_task_list"]

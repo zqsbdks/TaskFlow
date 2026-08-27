@@ -5,7 +5,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 
-# region 任务创建响应
+# region 任务响应
 class TaskCreateResponse(BaseModel):
     """任务创建成功后允许返回给客户端的公开字段。"""
 
@@ -27,4 +27,18 @@ class TaskCreateResponse(BaseModel):
 # endregion
 
 
-__all__ = ["TaskCreateResponse"]
+# region 任务列表响应
+class TaskListResponse(BaseModel):
+    """任务列表及其分页信息。"""
+
+    items: list[TaskCreateResponse] = Field(default_factory=list, description="当前页任务")
+    total: int = Field(..., description="符合条件的任务总数")
+    page: int = Field(..., description="当前页码")
+    page_size: int = Field(..., description="每页条数")
+    total_pages: int = Field(..., description="总页数")
+
+
+# endregion
+
+
+__all__ = ["TaskCreateResponse", "TaskListResponse"]

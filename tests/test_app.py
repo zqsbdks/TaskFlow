@@ -58,3 +58,4 @@ def test_task_router_is_registered() -> None:
 
     assert response.status_code == 200
     assert "/api/v1/tasks/create" in response.json()["paths"]
+    assert "/api/v1/tasks/list" in response.json()["paths"]

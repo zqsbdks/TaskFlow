@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 from app.models.task import Task
 from app.models.user import User
-from app.schemas.task_request import TaskCreateRequest
+from app.schemas.task_request import TaskCreateRequest, TaskListRequest
 from app.services import task as task_service
 
 
@@ -95,6 +95,60 @@ async def test_create_task_service_rejects_duplicate_title(monkeypatch) -> None:
     assert exc_info.value.status_code == 409
     assert exc_info.value.detail == "任务标题已存在"
     create_task.assert_not_awaited()
+
+
+# endregion
+
+
+# region 任务列表 Service 测试
+@pytest.mark.asyncio
+async def test_get_task_list_service_returns_pagination_data(monkeypatch) -> None:
+    """列表服务应计算偏移量和总页数，并仅查询当前用户的数据。"""
+
+    user = build_user()
+    task = build_task()
+    get_task_list = AsyncMock(return_value=([task], 5))
+    monkeypatch.setattr(task_service, "get_task_list", get_task_list)
+
+    result = await task_service.get_task_list_service(
+        db=AsyncMock(),
+        current_user=user,
+        query=TaskListRequest(
+            page=2,
+            page_size=2,
+            status="pending",
+            priority=3,
+        ),
+    )
+
+    assert result.items[0].id == task.id
+    assert result.total == 5
+    assert result.page == 2
+    assert result.page_size == 2
+    assert result.total_pages == 3
+    query_arguments = get_task_list.await_args.kwargs
+    assert query_arguments["user_id"] == user.id
+    assert query_arguments["offset"] == 2
+    assert query_arguments["limit"] == 2
+    assert query_arguments["task_status"] == "pending"
+    assert query_arguments["priority"] == 3
+
+
+@pytest.mark.asyncio
+async def test_get_task_list_service_handles_empty_result(monkeypatch) -> None:
+    """没有符合条件的任务时，应返回空列表和零页。"""
+
+    monkeypatch.setattr(task_service, "get_task_list", AsyncMock(return_value=([], 0)))
+
+    result = await task_service.get_task_list_service(
+        db=AsyncMock(),
+        current_user=build_user(),
+        query=TaskListRequest(),
+    )
+
+    assert result.items == []
+    assert result.total == 0
+    assert result.total_pages == 0
 
 
 # endregion
