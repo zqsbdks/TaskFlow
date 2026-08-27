@@ -18,6 +18,7 @@ from app.schemas.task_response import (
 )
 from app.services.task import (
     create_task_service,
+    delete_task_service,
     get_task_detail_service,
     get_task_list_service,
     update_task_service,
@@ -127,6 +128,29 @@ async def update_task(
         message="更新任务成功",
         data=task,
     )
+
+
+# endregion
+
+
+# region 任务删除
+@task_router.delete("/delete/{task_id}", response_model=ResponseModel)
+async def delete_task(
+    task_id: int = Path(..., ge=1, description="任务ID"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """删除当前用户拥有的任务。"""
+
+    # Service 负责权限检查、业务校验和数据库删除。
+    await delete_task_service(
+        task_id=task_id,
+        db=db,
+        current_user=current_user,
+    )
+
+    # 删除接口不返回任务数据，ResponseModel.data 使用默认值 None。
+    return ResponseModel(message="删除任务成功")
 
 
 # endregion

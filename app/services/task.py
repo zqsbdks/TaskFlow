@@ -8,7 +8,14 @@ from datetime import datetime
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.crud.task import create_task, get_task_by_id, get_task_by_title, get_task_list, update_task
+from app.crud.task import (
+    create_task,
+    delete_task,
+    get_task_by_id,
+    get_task_by_title,
+    get_task_list,
+    update_task,
+)
 from app.models.task import Task
 from app.models.user import User
 from app.schemas.task_request import TaskCreateRequest, TaskListRequest, TaskUpdateRequest
@@ -207,8 +214,45 @@ async def update_task_service(
 # endregion
 
 
+# region 任务删除服务
+async def delete_task_service(
+    db: AsyncSession,
+    current_user: User,
+    task_id: int,
+) -> None:
+    """查询并删除当前用户拥有的指定任务。
+
+    Args:
+        db: 当前请求使用的异步数据库会话。
+        current_user: 由访问令牌确定的当前登录用户。
+        task_id: 路径参数中的任务主键。
+
+    Raises:
+        HTTPException: 任务不存在或不属于当前用户时返回 HTTP 404。
+    """
+
+    # 同时按 task_id 和当前用户 ID 查询，防止删除其他用户的任务。
+    task = await get_task_by_id(
+        db=db,
+        user_id=current_user.id,
+        task_id=task_id,
+    )
+    if task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="任务不存在",
+        )
+
+    # 权限校验通过后，交由 CRUD 执行数据库删除。
+    await delete_task(db=db, task=task)
+
+
+# endregion
+
+
 __all__ = [
     "create_task_service",
+    "delete_task_service",
     "get_task_detail_service",
     "get_task_list_service",
     "update_task_service",

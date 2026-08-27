@@ -100,6 +100,49 @@ async def test_create_task_service_rejects_duplicate_title(monkeypatch) -> None:
 # endregion
 
 
+# region 任务删除 Service 测试
+@pytest.mark.asyncio
+async def test_delete_task_service_deletes_current_user_task(monkeypatch) -> None:
+    """任务存在且属于当前用户时，应调用 CRUD 删除任务。"""
+
+    task = build_task()
+    delete_task = AsyncMock()
+    monkeypatch.setattr(task_service, "get_task_by_id", AsyncMock(return_value=task))
+    monkeypatch.setattr(task_service, "delete_task", delete_task)
+
+    await task_service.delete_task_service(
+        db=AsyncMock(),
+        current_user=build_user(),
+        task_id=task.id,
+    )
+
+    delete_task.assert_awaited_once()
+    assert delete_task.await_args.kwargs["task"] is task
+
+
+@pytest.mark.asyncio
+async def test_delete_task_service_rejects_missing_task(monkeypatch) -> None:
+    """任务不存在或不属于当前用户时，应返回 404 且不能执行删除。"""
+
+    delete_task = AsyncMock()
+    monkeypatch.setattr(task_service, "get_task_by_id", AsyncMock(return_value=None))
+    monkeypatch.setattr(task_service, "delete_task", delete_task)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await task_service.delete_task_service(
+            db=AsyncMock(),
+            current_user=build_user(),
+            task_id=999,
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "任务不存在"
+    delete_task.assert_not_awaited()
+
+
+# endregion
+
+
 # region 任务更新 Service 测试
 @pytest.mark.asyncio
 async def test_update_task_service_only_updates_submitted_fields(monkeypatch) -> None:

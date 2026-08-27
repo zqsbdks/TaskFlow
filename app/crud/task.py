@@ -147,4 +147,23 @@ async def update_task(
 # endregion
 
 
-__all__ = ["create_task", "get_task_by_id", "get_task_by_title", "get_task_list", "update_task"]
+# region 任务删除
+async def delete_task(db: AsyncSession, task: Task) -> None:
+    """从数据库中删除指定任务。"""
+
+    # Task 模型配置了级联删除，任务关联的 task_tag 记录会一并清理。
+    await db.delete(task)
+    await db.commit()
+
+
+# endregion
+
+
+__all__ = [
+    "create_task",
+    "delete_task",
+    "get_task_by_id",
+    "get_task_by_title",
+    "get_task_list",
+    "update_task",
+]
