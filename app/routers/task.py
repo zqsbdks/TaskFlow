@@ -1,6 +1,6 @@
 """任务 API 路由。"""
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.auth import get_current_user
@@ -17,8 +17,8 @@ task_router = APIRouter(tags=["任务"], prefix="/tasks")
 
 # region 任务创建
 @task_router.post(
-    "create",
-    response_model=ResponseModel[TaskCreateResponse]
+    "/create",
+    response_model=ResponseModel[TaskCreateResponse],
 )
 async def create_task(
     task_data: TaskCreateRequest,
