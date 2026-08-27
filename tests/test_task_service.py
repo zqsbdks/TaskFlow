@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 from app.models.task import Task
 from app.models.user import User
-from app.schemas.task_request import TaskCreateRequest, TaskListRequest
+from app.schemas.task_request import TaskCreateRequest, TaskListRequest, TaskUpdateRequest
 from app.services import task as task_service
 
 
@@ -95,6 +95,91 @@ async def test_create_task_service_rejects_duplicate_title(monkeypatch) -> None:
     assert exc_info.value.status_code == 409
     assert exc_info.value.detail == "任务标题已存在"
     create_task.assert_not_awaited()
+
+
+# endregion
+
+
+# region 任务更新 Service 测试
+@pytest.mark.asyncio
+async def test_update_task_service_only_updates_submitted_fields(monkeypatch) -> None:
+    """部分更新时，不应把请求中未提交的字段覆盖为 None。"""
+
+    task = build_task()
+    update_task = AsyncMock(return_value=task)
+    monkeypatch.setattr(task_service, "get_task_by_id", AsyncMock(return_value=task))
+    monkeypatch.setattr(task_service, "update_task", update_task)
+
+    result = await task_service.update_task_service(
+        db=AsyncMock(),
+        current_user=build_user(),
+        task_id=task.id,
+        update_data=TaskUpdateRequest(description="新的任务描述"),
+    )
+
+    assert result is task
+    assert update_task.await_args.kwargs["update_values"] == {"description": "新的任务描述"}
+
+
+@pytest.mark.asyncio
+async def test_update_task_service_sets_completed_time(monkeypatch) -> None:
+    """任务首次更新为已完成状态时，应同时写入完成时间。"""
+
+    task = build_task()
+    update_task = AsyncMock(return_value=task)
+    monkeypatch.setattr(task_service, "get_task_by_id", AsyncMock(return_value=task))
+    monkeypatch.setattr(task_service, "update_task", update_task)
+
+    await task_service.update_task_service(
+        db=AsyncMock(),
+        current_user=build_user(),
+        task_id=task.id,
+        update_data=TaskUpdateRequest(status="completed"),
+    )
+
+    update_values = update_task.await_args.kwargs["update_values"]
+    assert update_values["status"] == "completed"
+    assert isinstance(update_values["completed_at"], datetime)
+
+
+@pytest.mark.asyncio
+async def test_update_task_service_rejects_empty_request(monkeypatch) -> None:
+    """请求体没有任何更新字段时，应返回 400。"""
+
+    task = build_task()
+    update_task = AsyncMock()
+    monkeypatch.setattr(task_service, "get_task_by_id", AsyncMock(return_value=task))
+    monkeypatch.setattr(task_service, "update_task", update_task)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await task_service.update_task_service(
+            db=AsyncMock(),
+            current_user=build_user(),
+            task_id=task.id,
+            update_data=TaskUpdateRequest(),
+        )
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "没有提供需要更新的字段"
+    update_task.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_update_task_service_rejects_missing_task(monkeypatch) -> None:
+    """任务不存在或不属于当前用户时，应返回 404。"""
+
+    monkeypatch.setattr(task_service, "get_task_by_id", AsyncMock(return_value=None))
+
+    with pytest.raises(HTTPException) as exc_info:
+        await task_service.update_task_service(
+            db=AsyncMock(),
+            current_user=build_user(),
+            task_id=999,
+            update_data=TaskUpdateRequest(title="新的任务标题"),
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "没有找到任务"
 
 
 # endregion

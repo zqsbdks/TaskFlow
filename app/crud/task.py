@@ -125,4 +125,26 @@ async def get_task_list(
 # endregion
 
 
-__all__ = ["create_task", "get_task_by_id", "get_task_by_title", "get_task_list"]
+# region 任务更新
+async def update_task(
+    db: AsyncSession,
+    task: Task,
+    update_values: dict[str, object],
+) -> Task:
+    """更新指定字段并返回数据库中的最新任务对象。"""
+
+    # update_values 只包含 Service 允许修改的字段，不会覆盖未提交的数据。
+    for field_name, field_value in update_values.items():
+        setattr(task, field_name, field_value)
+
+    # 所有字段修改完成后只提交一次事务。
+    await db.commit()
+    await db.refresh(task)
+
+    return task
+
+
+# endregion
+
+
+__all__ = ["create_task", "get_task_by_id", "get_task_by_title", "get_task_list", "update_task"]

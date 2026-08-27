@@ -42,4 +42,22 @@ class TaskListRequest(BaseModel):
 # endregion
 
 
-__all__ = ["TaskCreateRequest", "TaskListRequest"]
+# region 任务更新请求
+class TaskUpdateRequest(BaseModel):
+    """更新任务接口接收的可选字段。"""
+
+    # 字段未提交时不会更新；description 和 due_date 可以显式传 null 清空。
+    title: str | None = Field(default=None, min_length=1, max_length=200, description="任务标题")
+    description: str | None = Field(default=None, max_length=200, description="任务描述")
+    status: Literal["pending", "in_progress", "completed", "cancelled"] | None = Field(
+        default=None,
+        description="任务状态",
+    )
+    priority: int | None = Field(default=None, ge=1, le=5, description="任务优先级（1-5）")
+    due_date: datetime | None = Field(default=None, description="任务截止时间")
+
+
+# endregion
+
+
+__all__ = ["TaskCreateRequest", "TaskListRequest", "TaskUpdateRequest"]

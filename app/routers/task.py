@@ -9,9 +9,19 @@ from app.dependencies.auth import get_current_user
 from app.dependencies.db import get_db
 from app.models.user import User
 from app.schemas.base import ResponseModel
-from app.schemas.task_request import TaskCreateRequest, TaskListRequest
-from app.schemas.task_response import TaskCreateResponse, TaskDetailResponse, TaskListResponse
-from app.services.task import create_task_service, get_task_detail_service, get_task_list_service
+from app.schemas.task_request import TaskCreateRequest, TaskListRequest, TaskUpdateRequest
+from app.schemas.task_response import (
+    TaskCreateResponse,
+    TaskDetailResponse,
+    TaskListResponse,
+    TaskUpdateResponse,
+)
+from app.services.task import (
+    create_task_service,
+    get_task_detail_service,
+    get_task_list_service,
+    update_task_service,
+)
 
 # 任务领域接口统一使用 /tasks 路径前缀和中文 Swagger 标签。
 task_router = APIRouter(tags=["任务"], prefix="/tasks")
@@ -88,6 +98,34 @@ async def get_task_detail(
     return ResponseModel(
         message="获取任务详情成功",
         data=task_data,
+    )
+
+
+# endregion
+
+
+# region 任务更新
+@task_router.put("/update/{task_id}", response_model=ResponseModel[TaskUpdateResponse])
+async def update_task(
+    update_data: TaskUpdateRequest,
+    task_id: int = Path(..., ge=1, description="任务ID"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """更新当前用户拥有的任务，仅修改请求体中实际提交的字段。"""
+
+    # Service 负责权限检查、业务校验、完成时间处理和数据库更新。
+    task = await update_task_service(
+        task_id=task_id,
+        db=db,
+        current_user=current_user,
+        update_data=update_data,
+    )
+
+    # TaskUpdateResponse 会从更新后的 ORM 对象读取并筛选公开字段。
+    return ResponseModel(
+        message="更新任务成功",
+        data=task,
     )
 
 
