@@ -100,6 +100,47 @@ async def test_create_task_service_rejects_duplicate_title(monkeypatch) -> None:
 # endregion
 
 
+# region 任务详情 Service 测试
+@pytest.mark.asyncio
+async def test_get_task_detail_service_returns_current_user_task(monkeypatch) -> None:
+    """任务存在且属于当前用户时，应返回对应任务对象。"""
+
+    user = build_user()
+    task = build_task()
+    get_task_by_id = AsyncMock(return_value=task)
+    monkeypatch.setattr(task_service, "get_task_by_id", get_task_by_id)
+
+    result = await task_service.get_task_detail_service(
+        db=AsyncMock(),
+        current_user=user,
+        task_id=task.id,
+    )
+
+    assert result is task
+    assert get_task_by_id.await_args.kwargs["task_id"] == task.id
+    assert get_task_by_id.await_args.kwargs["user_id"] == user.id
+
+
+@pytest.mark.asyncio
+async def test_get_task_detail_service_rejects_missing_task(monkeypatch) -> None:
+    """任务不存在或不属于当前用户时，应返回 404。"""
+
+    monkeypatch.setattr(task_service, "get_task_by_id", AsyncMock(return_value=None))
+
+    with pytest.raises(HTTPException) as exc_info:
+        await task_service.get_task_detail_service(
+            db=AsyncMock(),
+            current_user=build_user(),
+            task_id=999,
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "没有找到任务"
+
+
+# endregion
+
+
 # region 任务列表 Service 测试
 @pytest.mark.asyncio
 async def test_get_task_list_service_returns_pagination_data(monkeypatch) -> None:

@@ -6,7 +6,7 @@ Service 层负责执行任务业务规则，并在校验通过后调用 CRUD。
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.crud.task import create_task, get_task_by_title, get_task_list
+from app.crud.task import create_task, get_task_by_id, get_task_by_title, get_task_list
 from app.models.task import Task
 from app.models.user import User
 from app.schemas.task_request import TaskCreateRequest, TaskListRequest
@@ -99,4 +99,42 @@ async def get_task_list_service(
 # endregion
 
 
-__all__ = ["create_task_service", "get_task_list_service"]
+# region 任务详情服务
+async def get_task_detail_service(
+    db: AsyncSession,
+    current_user: User,
+    task_id: int,
+) -> Task:
+    """查询当前用户拥有的指定任务。
+
+    Args:
+        db: 当前请求使用的异步数据库会话。
+        current_user: 由访问令牌确定的当前登录用户。
+        task_id: 路径参数中的任务主键。
+
+    Returns:
+        当前用户拥有的任务对象。
+
+    Raises:
+        HTTPException: 任务不存在或不属于当前用户时返回 HTTP 404。
+    """
+
+    # CRUD 已同时限定 task_id 和当前用户 ID，因此不会返回其他用户的任务。
+    task = await get_task_by_id(
+        db=db,
+        task_id=task_id,
+        user_id=current_user.id,
+    )
+    if task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="没有找到任务",
+        )
+
+    return task
+
+
+# endregion
+
+
+__all__ = ["create_task_service", "get_task_detail_service", "get_task_list_service"]

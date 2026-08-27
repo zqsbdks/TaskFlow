@@ -28,6 +28,22 @@ async def get_task_by_title(
     return await db.scalar(statement)
 
 
+async def get_task_by_id(
+    db: AsyncSession,
+    user_id: int,
+    task_id: int,
+) -> Task | None:
+    """根据任务 ID 查询当前用户拥有的任务。"""
+
+    # 同时限制任务主键和所属用户，防止用户通过修改 task_id 查看他人的任务。
+    statement = select(Task).where(
+        Task.user_id == user_id,
+        Task.id == task_id,
+    )
+
+    return await db.scalar(statement)
+
+
 # endregion
 
 
@@ -109,4 +125,4 @@ async def get_task_list(
 # endregion
 
 
-__all__ = ["create_task", "get_task_by_title", "get_task_list"]
+__all__ = ["create_task", "get_task_by_id", "get_task_by_title", "get_task_list"]

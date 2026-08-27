@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.auth import get_current_user
@@ -10,8 +10,8 @@ from app.dependencies.db import get_db
 from app.models.user import User
 from app.schemas.base import ResponseModel
 from app.schemas.task_request import TaskCreateRequest, TaskListRequest
-from app.schemas.task_response import TaskCreateResponse, TaskListResponse
-from app.services.task import create_task_service, get_task_list_service
+from app.schemas.task_response import TaskCreateResponse, TaskDetailResponse, TaskListResponse
+from app.services.task import create_task_service, get_task_detail_service, get_task_list_service
 
 # 任务领域接口统一使用 /tasks 路径前缀和中文 Swagger 标签。
 task_router = APIRouter(tags=["任务"], prefix="/tasks")
@@ -62,10 +62,32 @@ async def get_task_list(
         query=query,
     )
 
+    return ResponseModel(code=200, message="获取任务列表成功", data=task_list)
+
+
+# endregion
+
+
+# region 任务详情
+@task_router.get("/detail/{task_id}", response_model=ResponseModel[TaskDetailResponse])
+async def get_task_detail(
+    task_id: int = Path(..., ge=1, description="任务ID"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """获取当前登录用户拥有的指定任务详情。"""
+
+    # Service 负责确认任务存在且属于当前用户。
+    task_data = await get_task_detail_service(
+        task_id=task_id,
+        db=db,
+        current_user=current_user,
+    )
+
+    # TaskDetailResponse 会从 ORM 对象读取并筛选允许公开的字段。
     return ResponseModel(
-        code=200,
-        message="获取任务列表成功",
-        data=task_list
+        message="获取任务详情成功",
+        data=task_data,
     )
 
 

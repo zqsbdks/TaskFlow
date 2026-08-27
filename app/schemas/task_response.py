@@ -41,4 +41,22 @@ class TaskListResponse(BaseModel):
 # endregion
 
 
-__all__ = ["TaskCreateResponse", "TaskListResponse"]
+# region 任务详情响应
+class TaskDetailResponse(BaseModel):
+    """任务详情接口允许返回给客户端的公开字段。"""
+
+    id: int = Field(..., description="任务ID")
+    title: str = Field(..., description="任务标题")
+    description: str | None = Field(default=None, description="任务描述")
+    status: str = Field(..., description="任务状态")
+    priority: int = Field(..., description="任务优先级（1-5）")
+    user_id: int = Field(..., description="任务创建者ID")
+
+    # 允许 Pydantic 直接从 SQLAlchemy Task 对象读取响应字段。
+    model_config = ConfigDict(from_attributes=True)
+
+
+# endregion
+
+
+__all__ = ["TaskCreateResponse", "TaskDetailResponse", "TaskListResponse"]
