@@ -6,6 +6,7 @@
 
 from fastapi import APIRouter
 
+from app.routers.tag import tag_router
 from app.routers.task import task_router
 from app.routers.user import user_router
 
@@ -16,5 +17,7 @@ api_router = APIRouter()
 api_router.include_router(user_router)
 # 将任务路由纳入顶层聚合路由，最终路径以 /api/v1/tasks 开头。
 api_router.include_router(task_router)
+# 将标签路由纳入顶层聚合路由，最终路径以 /api/v1/tags 开头。
+api_router.include_router(tag_router)
 
 __all__ = ["api_router"]
