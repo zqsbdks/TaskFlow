@@ -26,6 +26,22 @@ async def get_tag_by_name(
     return await db.scalar(statement)
 
 
+async def get_tag_by_id(
+    db: AsyncSession,
+    user_id: int,
+    tag_id: int,
+) -> Tag | None:
+    """根据标签 ID 查询当前用户拥有的标签。"""
+
+    # 同时限制标签主键和所属用户，防止使用其他用户的标签。
+    statement = select(Tag).where(
+        Tag.id == tag_id,
+        Tag.user_id == user_id,
+    )
+
+    return await db.scalar(statement)
+
+
 # endregion
 
 
@@ -74,4 +90,4 @@ async def get_tags_by_user_id(
 # endregion
 
 
-__all__ = ["create_tag", "get_tag_by_name", "get_tags_by_user_id"]
+__all__ = ["create_tag", "get_tag_by_id", "get_tag_by_name", "get_tags_by_user_id"]
