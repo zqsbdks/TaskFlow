@@ -3,7 +3,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.crud.tag import create_tag, get_tag_by_name
+from app.crud.tag import create_tag, get_tag_by_name, get_tags_by_user_id
 from app.models.tag import Tag
 from app.models.user import User
 from app.schemas.tag_request import TagCreateRequest
@@ -53,4 +53,26 @@ async def create_tag_service(
 # endregion
 
 
-__all__ = ["create_tag_service"]
+# region 标签列表服务
+async def get_tag_list_service(
+    db: AsyncSession,
+    current_user: User,
+) -> list[Tag]:
+    """获取当前用户的标签列表。
+
+    Args:
+        db: 当前请求使用的异步数据库会话。
+        current_user: 由访问令牌确定的当前登录用户。
+
+    Returns:
+        当前用户的标签列表。
+    """
+
+    # 当前用户 ID 由令牌确定，只查询该用户自己创建的标签。
+    return await get_tags_by_user_id(db=db, user_id=current_user.id)
+
+
+# endregion
+
+
+__all__ = ["create_tag_service", "get_tag_list_service"]

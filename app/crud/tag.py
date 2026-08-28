@@ -56,4 +56,22 @@ async def create_tag(
 # endregion
 
 
-__all__ = ["create_tag", "get_tag_by_name"]
+# region 标签列表查询
+async def get_tags_by_user_id(
+    db: AsyncSession,
+    user_id: int,
+) -> list[Tag]:
+    """根据用户 ID 查询该用户的全部标签。"""
+
+    # user_id 限制查询范围，避免返回其他用户创建的标签。
+    statement = select(Tag).where(Tag.user_id == user_id)
+    result = await db.scalars(statement)
+
+    # 明确转换为 list，与函数声明的返回类型保持一致。
+    return list(result.all())
+
+
+# endregion
+
+
+__all__ = ["create_tag", "get_tag_by_name", "get_tags_by_user_id"]
