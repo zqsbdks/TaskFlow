@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.tag import create_tag, get_tag_by_id, get_tag_by_name, get_tags_by_user_id
 from app.crud.task import get_task_by_id
-from app.crud.task_tag import add_tag_to_task, get_task_tag
+from app.crud.task_tag import add_tag_to_task, delete_task_tag, get_task_tag
 from app.models.tag import Tag
 from app.models.user import User
 from app.schemas.tag_request import TagCreateRequest
@@ -148,4 +148,71 @@ async def add_tag_for_task_service(
 # endregion
 
 
-__all__ = ["add_tag_for_task_service", "create_tag_service", "get_tag_list_service"]
+# region 从任务移除标签服务
+async def remove_tag_from_task_service(
+    db: AsyncSession,
+    current_user: User,
+    task_id: int,
+    tag_id: int,
+) -> None:
+    """校验任务、标签和绑定关系，然后移除任务标签。
+
+    Args:
+        db: 当前请求使用的异步数据库会话。
+        current_user: 由访问令牌确定的当前登录用户。
+        task_id: 需要移除标签的任务 ID。
+        tag_id: 需要从任务移除的标签 ID。
+
+    Raises:
+        HTTPException: 任务、标签或二者的绑定关系不存在时返回 HTTP 404。
+    """
+
+    # 查询条件包含当前用户 ID，确保不能修改其他用户的任务。
+    task = await get_task_by_id(
+        db=db,
+        user_id=current_user.id,
+        task_id=task_id,
+    )
+    if task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="任务不存在",
+        )
+
+    # 标签也必须属于当前用户，不能操作其他用户创建的标签。
+    tag = await get_tag_by_id(
+        db=db,
+        user_id=current_user.id,
+        tag_id=tag_id,
+    )
+    if tag is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="标签不存在",
+        )
+
+    # 查询任务与标签的绑定记录；未绑定时不能返回删除成功。
+    task_tag = await get_task_tag(
+        db=db,
+        task_id=task_id,
+        tag_id=tag_id,
+    )
+    if task_tag is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="任务未添加该标签",
+        )
+
+    # 业务校验通过后，交给关联表 CRUD 删除绑定记录。
+    await delete_task_tag(db=db, task_tag=task_tag)
+
+
+# endregion
+
+
+__all__ = [
+    "add_tag_for_task_service",
+    "create_tag_service",
+    "get_tag_list_service",
+    "remove_tag_from_task_service",
+]

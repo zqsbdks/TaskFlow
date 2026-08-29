@@ -202,6 +202,54 @@ async def test_add_tag_for_task_service_rejects_duplicate_relation(monkeypatch) 
 # endregion
 
 
+# region 从任务移除标签 Service 测试
+@pytest.mark.asyncio
+async def test_remove_tag_from_task_service_deletes_relation(monkeypatch) -> None:
+    """任务与标签已经绑定时，应删除对应的关联记录。"""
+
+    task_tag = TaskTag(task_id=1, tag_id=1)
+    delete_task_tag = AsyncMock()
+    monkeypatch.setattr(tag_service, "get_task_by_id", AsyncMock(return_value=build_task()))
+    monkeypatch.setattr(tag_service, "get_tag_by_id", AsyncMock(return_value=build_tag()))
+    monkeypatch.setattr(tag_service, "get_task_tag", AsyncMock(return_value=task_tag))
+    monkeypatch.setattr(tag_service, "delete_task_tag", delete_task_tag)
+
+    await tag_service.remove_tag_from_task_service(
+        db=AsyncMock(),
+        current_user=build_user(),
+        task_id=1,
+        tag_id=1,
+    )
+
+    assert delete_task_tag.await_args.kwargs["task_tag"] is task_tag
+
+
+@pytest.mark.asyncio
+async def test_remove_tag_from_task_service_rejects_missing_relation(monkeypatch) -> None:
+    """任务没有绑定指定标签时应返回 404，并且不执行删除。"""
+
+    delete_task_tag = AsyncMock()
+    monkeypatch.setattr(tag_service, "get_task_by_id", AsyncMock(return_value=build_task()))
+    monkeypatch.setattr(tag_service, "get_tag_by_id", AsyncMock(return_value=build_tag()))
+    monkeypatch.setattr(tag_service, "get_task_tag", AsyncMock(return_value=None))
+    monkeypatch.setattr(tag_service, "delete_task_tag", delete_task_tag)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await tag_service.remove_tag_from_task_service(
+            db=AsyncMock(),
+            current_user=build_user(),
+            task_id=1,
+            tag_id=1,
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "任务未添加该标签"
+    delete_task_tag.assert_not_awaited()
+
+
+# endregion
+
+
 # region 标签创建请求测试
 def test_tag_create_request_rejects_invalid_color() -> None:
     """颜色不是六位十六进制格式时，应在进入 Router 前被拒绝。"""

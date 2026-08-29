@@ -50,4 +50,19 @@ async def add_tag_to_task(
 # endregion
 
 
-__all__ = ["add_tag_to_task", "get_task_tag"]
+# region 任务标签关联删除
+async def delete_task_tag(
+    db: AsyncSession,
+    task_tag: TaskTag,
+) -> None:
+    """删除指定的任务标签绑定记录。"""
+
+    # Service 已确认关联记录存在，CRUD 只负责删除并提交事务。
+    await db.delete(task_tag)
+    await db.commit()
+
+
+# endregion
+
+
+__all__ = ["add_tag_to_task", "delete_task_tag", "get_task_tag"]

@@ -13,6 +13,7 @@ from app.services.tag import (
     add_tag_for_task_service,
     create_tag_service,
     get_tag_list_service,
+    remove_tag_from_task_service,
 )
 
 # 标签领域接口统一使用 /tags 路径前缀和中文 Swagger 标签。
@@ -91,6 +92,36 @@ async def add_tag_for_task(
     return ResponseModel(
         message="为任务添加标签成功",
         data=tag,
+    )
+
+
+# endregion
+
+
+# region 从任务移除标签
+@tag_router.delete(
+    "/task/{task_id}/tag/{tag_id}",
+    response_model=ResponseModel,
+)
+async def remove_tag_from_task(
+    task_id: int = Path(..., ge=1, description="任务 ID"),
+    tag_id: int = Path(..., ge=1, description="标签 ID"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """从指定任务移除一个已经绑定的标签。"""
+
+    # Service 负责检查任务、标签归属及绑定关系，然后执行删除。
+    await remove_tag_from_task_service(
+        db=db,
+        current_user=current_user,
+        task_id=task_id,
+        tag_id=tag_id,
+    )
+
+    # 关联删除后没有需要返回的数据，data 使用默认值 None。
+    return ResponseModel(
+        message="移除任务标签成功",
     )
 
 
