@@ -11,7 +11,7 @@ from app.dependencies.db import get_db
 from app.main import create_app
 from app.models.user import User
 from app.routers import admin_user as admin_user_router_module
-from app.schemas.admin_user_request import AdminUserListRequest
+from app.schemas.admin_user_request import AdminUpdateRequest, AdminUserListRequest
 from app.schemas.admin_user_response import (
     AdminUserListItemResponse,
     AdminUserListResponse,
@@ -174,3 +174,72 @@ def test_admin_user_list_route_serializes_response(monkeypatch) -> None:
             "total_pages": 1,
         },
     }
+
+
+@pytest.mark.asyncio
+async def test_update_user_status_service_updates_user_for_admin(monkeypatch) -> None:
+    """已启用的管理员应能修改目标用户的启用状态。"""
+
+    target_user = build_user(user_id=2, role="user", is_active=False)
+    update_user = AsyncMock(return_value=target_user)
+    monkeypatch.setattr(admin_user_service, "update_user", update_user)
+    status_data = AdminUpdateRequest(is_active=False)
+
+    result = await admin_user_service.update_user_status_service(
+        db=AsyncMock(),
+        user_id=target_user.id,
+        status=status_data,
+        current_user=build_user(),
+    )
+
+    assert result is None
+    assert update_user.await_args.kwargs["user_id"] == target_user.id
+    assert update_user.await_args.kwargs["status"] is status_data
+
+
+@pytest.mark.asyncio
+async def test_update_user_status_service_rejects_missing_user(monkeypatch) -> None:
+    """目标用户不存在时应返回 HTTP 404。"""
+
+    monkeypatch.setattr(admin_user_service, "update_user", AsyncMock(return_value=None))
+
+    with pytest.raises(HTTPException) as exc_info:
+        await admin_user_service.update_user_status_service(
+            db=AsyncMock(),
+            user_id=999,
+            status=AdminUpdateRequest(is_active=False),
+            current_user=build_user(),
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "用户不存在"
+
+
+def test_update_user_status_route_returns_success(monkeypatch) -> None:
+    """更新接口应接收状态请求体并返回统一成功响应。"""
+
+    update_status = AsyncMock(return_value=None)
+    monkeypatch.setattr(
+        admin_user_router_module,
+        "update_user_status_service",
+        update_status,
+    )
+
+    application = create_app()
+    application.dependency_overrides[get_db] = lambda: AsyncMock()
+    application.dependency_overrides[get_current_user] = lambda: build_user()
+
+    with TestClient(application) as client:
+        response = client.put(
+            "/api/v1/admin/user/status/2",
+            json={"is_active": False},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "code": 200,
+        "message": "更新用户状态成功",
+        "data": None,
+    }
+    assert update_status.await_args.kwargs["user_id"] == 2
+    assert not update_status.await_args.kwargs["status"].is_active

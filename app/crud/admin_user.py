@@ -7,8 +7,10 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
+from app.schemas.admin_user_request import AdminUpdateRequest
 
 
+# region 管理员用户列表查询
 async def get_user_list(
     db: AsyncSession,
     offset: int,
@@ -29,4 +31,31 @@ async def get_user_list(
     return users, total
 
 
-__all__ = ["get_user_list"]
+# endregion
+
+
+# region 管理员更新用户状态
+async def update_user(
+    db: AsyncSession,
+    user_id: int,
+    status: AdminUpdateRequest,
+) -> User | None:
+    """更新指定用户的启用状态，并返回更新后的用户对象。"""
+
+    # get() 按主键查询；用户不存在时返回 None，由 Service 处理成 404。
+    user = await db.get(User, user_id)
+    if user is None:
+        return None
+
+    # 直接修改 ORM 对象，commit() 时 SQLAlchemy 会自动生成 UPDATE 语句。
+    user.is_active = status.is_active
+    await db.commit()
+    await db.refresh(user)
+
+    return user
+
+
+# endregion
+
+
+__all__ = ["get_user_list", "update_user"]

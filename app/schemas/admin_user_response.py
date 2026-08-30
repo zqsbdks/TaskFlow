@@ -4,6 +4,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 
+# region 管理员用户列表项响应
 class AdminUserListItemResponse(BaseModel):
     """用户列表中允许返回给管理员的公开字段。"""
 
@@ -17,6 +18,10 @@ class AdminUserListItemResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# endregion
+
+
+# region 管理员用户分页响应
 class AdminUserListResponse(BaseModel):
     """管理员用户列表及其分页信息。"""
 
@@ -28,6 +33,9 @@ class AdminUserListResponse(BaseModel):
     page: int = Field(..., description="当前页码")
     page_size: int = Field(..., description="每页条数")
     total_pages: int = Field(..., description="总页数")
+
+
+# endregion
 
 
 __all__ = ["AdminUserListItemResponse", "AdminUserListResponse"]

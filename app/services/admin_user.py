@@ -1,13 +1,15 @@
 """管理员用户业务服务。"""
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException
+from fastapi import status as status_module
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.crud.admin_user import get_user_list
+from app.crud.admin_user import get_user_list, update_user
 from app.models.user import User
-from app.schemas.admin_user_request import AdminUserListRequest
+from app.schemas.admin_user_request import AdminUpdateRequest, AdminUserListRequest
 
 
+# region 管理员用户列表服务
 async def get_user_lists_service(
     db: AsyncSession,
     current_user: User,
@@ -30,14 +32,14 @@ async def get_user_lists_service(
     # 只有管理员可以读取全站用户，普通用户不能通过该接口枚举账号。
     if current_user.role != "admin":
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status_module.HTTP_403_FORBIDDEN,
             detail="无权限访问",
         )
 
     # 禁用状态的管理员同样不能继续执行管理操作。
     if not current_user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status_module.HTTP_403_FORBIDDEN,
             detail="用户已被禁用",
         )
 
@@ -62,4 +64,44 @@ async def get_user_lists_service(
     }
 
 
-__all__ = ["get_user_lists_service"]
+# endregion
+
+
+# region 管理员更新用户状态服务
+async def update_user_status_service(
+    db: AsyncSession,
+    user_id: int,
+    status: AdminUpdateRequest,
+    current_user: User,
+) -> None:
+    """校验管理员权限并更新指定用户的启用状态。"""
+
+    # 权限判断属于业务规则，放在 Service，不放入 CRUD。
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status_module.HTTP_403_FORBIDDEN,
+            detail="无权限访问",
+        )
+
+    if not current_user.is_active:
+        raise HTTPException(
+            status_code=status_module.HTTP_403_FORBIDDEN,
+            detail="用户已被禁用",
+        )
+
+    updated_user = await update_user(
+        db=db,
+        user_id=user_id,
+        status=status,
+    )
+    if updated_user is None:
+        raise HTTPException(
+            status_code=status_module.HTTP_404_NOT_FOUND,
+            detail="用户不存在",
+        )
+
+
+# endregion
+
+
+__all__ = ["get_user_lists_service", "update_user_status_service"]
