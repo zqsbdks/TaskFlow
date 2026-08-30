@@ -68,7 +68,7 @@ def test_task_router_is_registered() -> None:
         response = client.get("/openapi.json")
 
     assert response.status_code == 200
-    assert response.json()["info"]["version"] == "1.0.0"
+    assert response.json()["info"]["version"] == "1.0.1"
     assert "/api/v1/tasks/create" in response.json()["paths"]
     assert "/api/v1/tasks/detail/{task_id}" in response.json()["paths"]
     assert "/api/v1/tasks/list" in response.json()["paths"]

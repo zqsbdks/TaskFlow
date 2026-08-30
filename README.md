@@ -1,6 +1,6 @@
 # TaskFlow
 
-TaskFlow 是一个前后端一体的异步任务管理系统，当前版本为 `1.0.0`。项目使用
+TaskFlow 是一个前后端一体的异步任务管理系统，当前版本为 `1.0.1`。项目使用
 FastAPI 提供 API 和静态前端，支持用户认证、任务管理、标签关联及管理员功能，
 适合用于学习完整的 Router → Service → CRUD 分层和部署流程。
 
@@ -56,7 +56,7 @@ Setup: 克隆后初始化项目
 
 ```dotenv
 APP_PROJECT_NAME="TaskFlow"
-APP_PROJECT_VERSION="1.0.0"
+APP_PROJECT_VERSION="1.0.1"
 APP_DATABASE_URL="mysql+aiomysql://user:password@localhost:3306/taskflow?charset=utf8mb4"
 APP_SECRET_KEY="本地初始化脚本生成的随机密钥"
 ```
@@ -212,7 +212,7 @@ VS Code 中也可以运行 `Quality: 完整检查` 任务。更多命令见 [COM
 
 ## 版本
 
-当前版本：`1.0.0`
+当前版本：`1.0.1`
 
 应用版本通过 `APP_PROJECT_VERSION` 配置并显示在 Swagger/OpenAPI 中；API 路径版本
 `/api/v1` 与应用发布版本相互独立。

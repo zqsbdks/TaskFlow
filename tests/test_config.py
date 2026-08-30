@@ -15,7 +15,7 @@ def test_settings_accept_mysql_async_url() -> None:
 
     assert settings.database_url.startswith("mysql+aiomysql://")
     assert settings.api_v1_prefix == "/api/v1"
-    assert settings.project_version == "1.0.0"
+    assert settings.project_version == "1.0.1"
 
 
 def test_cors_origins_is_not_shared() -> None:
