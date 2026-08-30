@@ -6,73 +6,85 @@
         "description": "VS Code插件与工作区选项"
     },
     ".vscode/tasks.json": {
-        "description": "VS Code一键初始化、开发、测试和迁移任务"
+        "description": "一键初始化、开发、测试、格式化和迁移任务"
     },
     ".vscode/extensions.json": {
         "description": "VS Code推荐扩展列表"
     },
     "app": {
-        "description": "FastAPI后端应用源码"
+        "description": "TaskFlow FastAPI后端应用源码"
     },
     "app/__init__.py": {
         "description": "应用Python包入口（保持无副作用）"
     },
     "app/main.py": {
-        "description": "FastAPI应用工厂与ASGI启动入口"
+        "description": "FastAPI应用工厂、API挂载与前端入口"
     },
     "app/core": {
-        "description": "配置、数据库、缓存、安全等核心基础设施"
+        "description": "配置、数据库、安全、异常和生命周期基础设施"
     },
     "app/core/__init__.py": {
         "description": "核心模块公共导出入口"
     },
     "app/core/config.py": {
-        "description": "环境变量与.env配置模型"
+        "description": "环境变量与.env强类型配置模型"
     },
     "app/core/database.py": {
-        "description": "异步MySQL引擎、会话工厂与数据库依赖"
+        "description": "异步MySQL引擎、会话工厂与数据库会话"
     },
     "app/core/exceptions.py": {
-        "description": "统一响应结构与全局异常处理器"
+        "description": "统一错误响应与全局异常处理器"
     },
     "app/core/lifespan.py": {
-        "description": "应用启动和关闭时的资源生命周期管理"
+        "description": "应用关闭时释放数据库连接池"
     },
     "app/core/logging.py": {
         "description": "控制台与轮转文件日志配置"
     },
     "app/core/middlewares.py": {
-        "description": "CORS等全局中间件的统一注册入口"
-    },
-    "app/core/redis.py": {
-        "description": "可选Redis异步客户端与连接关闭逻辑"
+        "description": "CORS等全局中间件注册入口"
     },
     "app/core/security.py": {
-        "description": "Argon2密码哈希与校验工具"
+        "description": "Argon2密码哈希与密码校验工具"
     },
     "app/core/token.py": {
-        "description": "JWT访问令牌签发工具"
+        "description": "JWT访问令牌签发与解析工具"
     },
     "app/crud": {
-        "description": "数据库访问层扩展目录"
+        "description": "SQLAlchemy数据库查询与写入层"
     },
     "app/crud/__init__.py": {
         "description": "CRUD数据访问包入口"
+    },
+    "app/crud/user.py": {
+        "description": "用户查询、创建和资料更新数据库操作"
+    },
+    "app/crud/task.py": {
+        "description": "任务查询、分页、创建、更新和删除操作"
+    },
+    "app/crud/tag.py": {
+        "description": "标签查询、创建和列表数据库操作"
+    },
+    "app/crud/task_tag.py": {
+        "description": "任务与标签关联关系数据库操作"
+    },
+    "app/crud/admin_user.py": {
+        "description": "管理员用户与全站任务查询操作"
     },
     "app/dependencies": {
         "description": "FastAPI可复用Depends依赖"
     },
     "app/dependencies/__init__.py": {
-        "description": "公共依赖统一导出入口"
+        "description": "公共依赖包入口"
     },
     "app/dependencies/db.py": {
-        "description": "数据库会话依赖的简短别名"
+        "description": "异步数据库会话依赖别名"
     },
     "app/dependencies/auth.py": {
-        "description": "Bearer JWT解析与认证依赖"
+        "description": "Bearer JWT解析与当前用户认证依赖"
     },
     "app/models": {
-        "description": "SQLAlchemy ORM模型目录"
+        "description": "SQLAlchemy ORM数据库模型"
     },
     "app/models/__init__.py": {
         "description": "ORM模型注册与Alembic发现入口"
@@ -80,14 +92,38 @@
     "app/models/base.py": {
         "description": "所有ORM模型共享的声明式Base"
     },
+    "app/models/user.py": {
+        "description": "用户账号ORM模型"
+    },
+    "app/models/task.py": {
+        "description": "任务内容、状态和时间ORM模型"
+    },
+    "app/models/tag.py": {
+        "description": "用户标签ORM模型"
+    },
+    "app/models/task_tag.py": {
+        "description": "任务与标签多对多关联ORM模型"
+    },
     "app/routers": {
-        "description": "API业务路由目录"
+        "description": "FastAPI业务路由层"
     },
     "app/routers/__init__.py": {
         "description": "顶层API路由聚合入口"
     },
+    "app/routers/user.py": {
+        "description": "注册、登录和用户资料API"
+    },
+    "app/routers/task.py": {
+        "description": "任务增删改查与状态API"
+    },
+    "app/routers/tag.py": {
+        "description": "标签管理与任务标签关联API"
+    },
+    "app/routers/admin_user.py": {
+        "description": "管理员用户和全站任务API"
+    },
     "app/schemas": {
-        "description": "Pydantic请求与响应模型目录"
+        "description": "Pydantic请求与响应模型"
     },
     "app/schemas/__init__.py": {
         "description": "Pydantic模型包入口与公共类型导出"
@@ -95,65 +131,140 @@
     "app/schemas/base.py": {
         "description": "通用泛型API响应模型"
     },
+    "app/schemas/user_request.py": {
+        "description": "用户注册、登录和资料请求模型"
+    },
+    "app/schemas/user_response.py": {
+        "description": "用户接口公开响应模型"
+    },
+    "app/schemas/task_request.py": {
+        "description": "任务创建、分页、更新和状态请求模型"
+    },
+    "app/schemas/task_response.py": {
+        "description": "任务详情、分页和更新响应模型"
+    },
+    "app/schemas/tag_request.py": {
+        "description": "标签创建请求模型"
+    },
+    "app/schemas/tag_response.py": {
+        "description": "标签创建与列表响应模型"
+    },
+    "app/schemas/admin_user_request.py": {
+        "description": "管理员用户和任务分页请求模型"
+    },
+    "app/schemas/admin_user_response.py": {
+        "description": "管理员用户和任务分页响应模型"
+    },
+    "app/services": {
+        "description": "权限检查与业务流程服务层"
+    },
+    "app/services/__init__.py": {
+        "description": "业务服务包入口"
+    },
+    "app/services/user.py": {
+        "description": "用户注册、登录和资料业务服务"
+    },
+    "app/services/task.py": {
+        "description": "任务权限、校验和状态业务服务"
+    },
+    "app/services/tag.py": {
+        "description": "标签及任务标签关联业务服务"
+    },
+    "app/services/admin_user.py": {
+        "description": "管理员权限、用户和全站任务业务服务"
+    },
+    "frontend": {
+        "description": "TaskFlow零构建响应式前端"
+    },
+    "frontend/index.html": {
+        "description": "登录、任务、标签、资料和管理页面结构"
+    },
+    "frontend/styles.css": {
+        "description": "桌面端与移动端响应式视觉样式"
+    },
+    "frontend/app.js": {
+        "description": "前端状态、API调用和页面交互逻辑"
+    },
     "alembic": {
         "description": "数据库版本迁移工作目录"
     },
     "alembic/env.py": {
-        "description": "Alembic异步迁移运行环境与元数据绑定"
+        "description": "Alembic异步迁移环境与ORM元数据绑定"
     },
     "alembic/script.py.mako": {
-        "description": "新迁移脚本的代码生成模板"
+        "description": "新迁移脚本代码生成模板"
     },
     "alembic/README": {
-        "description": "Alembic目录说明文件"
+        "description": "Alembic目录说明"
     },
     "alembic/versions": {
-        "description": "数据库迁移版本脚本目录"
-    },
-    "alembic/versions/.gitkeep": {
-        "description": "确保空迁移目录可被Git保留"
+        "description": "TaskFlow数据库迁移版本脚本"
     },
     "alembic/versions/02af0f92c4cd_template_baseline.py": {
-        "description": "模板数据库的初始迁移基线"
+        "description": "项目数据库初始空迁移基线"
+    },
+    "alembic/versions/ea1eaf00d47f_创建用户任务标签及任务标签关联表.py": {
+        "description": "创建用户、任务、标签和关联表迁移"
+    },
+    "alembic/versions/5c6bf1f552d0_scope_tags_to_users.py": {
+        "description": "为标签增加用户归属与联合唯一约束迁移"
     },
     "tests": {
-        "description": "pytest单元测试与集成测试"
+        "description": "pytest单元测试与MySQL集成测试"
     },
     "tests/conftest.py": {
-        "description": "测试环境变量与共享测试配置"
+        "description": "测试环境变量和进程级配置"
     },
     "tests/test_app.py": {
-        "description": "根接口、健康检查和404响应测试"
+        "description": "应用、前端入口和路由注册测试"
     },
     "tests/test_config.py": {
-        "description": "应用配置加载与隔离性测试"
+        "description": "应用配置默认值与隔离测试"
     },
     "tests/test_database.py": {
-        "description": "异步MySQL驱动与连接集成测试"
+        "description": "异步MySQL连接集成测试"
+    },
+    "tests/test_models.py": {
+        "description": "ORM表结构、约束和默认值测试"
     },
     "tests/test_dependencies.py": {
-        "description": "JWT认证依赖测试"
+        "description": "JWT与当前用户依赖测试"
     },
     "tests/test_security.py": {
-        "description": "密码哈希与JWT往返测试"
+        "description": "密码哈希和JWT签发测试"
+    },
+    "tests/test_user_service.py": {
+        "description": "用户Schema、Service和Router测试"
+    },
+    "tests/test_task_service.py": {
+        "description": "任务Schema、Service和Router测试"
+    },
+    "tests/test_tag_service.py": {
+        "description": "标签与任务标签业务测试"
+    },
+    "tests/test_admin_user_service.py": {
+        "description": "管理员用户和全站任务业务测试"
     },
     "scripts": {
-        "description": "可复用项目自动化脚本"
+        "description": "可重复执行的项目自动化脚本"
     },
     "scripts/freeze_requirements.py": {
-        "description": "使用当前虚拟环境生成依赖快照"
+        "description": "根据当前虚拟环境生成依赖快照"
     },
     "scripts/setup.ps1": {
-        "description": "克隆后创建环境配置、虚拟环境并安装全部依赖"
+        "description": "创建.env、虚拟环境、随机密钥并安装依赖"
     },
     ".env": {
         "description": "本地私密运行配置（禁止提交）"
     },
     ".env.example": {
-        "description": "可安全提交的环境变量示例"
+        "description": "本地开发环境变量示例"
+    },
+    ".env.production.example": {
+        "description": "Linux生产环境变量安全模板"
     },
     ".gitignore": {
-        "description": "Git忽略规则"
+        "description": "Git私密文件、虚拟环境和缓存忽略规则"
     },
     "alembic.ini": {
         "description": "Alembic迁移与日志主配置"
@@ -165,7 +276,7 @@
         "description": "pytest、Ruff和MyPy工具配置"
     },
     "README.md": {
-        "description": "项目结构、启动、迁移与测试说明"
+        "description": "TaskFlow功能、启动、部署和维护说明"
     },
     "COMMANDS.md": {
         "description": "开发、测试、迁移和依赖管理命令手册"
@@ -174,10 +285,10 @@
         "description": "Python命名规范与常用英文词表"
     },
     "requirements.txt": {
-        "description": "生产运行依赖列表"
+        "description": "Linux与生产环境运行依赖"
     },
     "requirements-dev.txt": {
-        "description": "测试和代码质量开发依赖列表"
+        "description": "测试和代码质量开发依赖"
     },
     "requirements-freeze.txt": {
         "description": "自动生成且不提交的完整依赖快照"

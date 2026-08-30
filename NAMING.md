@@ -183,7 +183,7 @@ Service 名称表达业务动作，CRUD 名称表达数据库动作。
 
 ## 6. 当前项目标准名称
 
-本模板已经统一使用以下名称：
+当前项目已经统一使用以下名称：
 
 ```python
 create_app
@@ -193,12 +193,15 @@ get_settings
 async_engine
 async_session_factory
 get_db_session
-get_redis_client
-close_redis
 hash_password
 verify_password
 create_access_token
 get_current_token_payload
+get_current_user
+create_task_service
+get_task_list_service
+create_tag_service
+add_tag_for_task_service
 ResponseModel
 Base
 ```

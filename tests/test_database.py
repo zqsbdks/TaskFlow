@@ -9,7 +9,7 @@ from app.core.database import async_engine, async_session_factory
 
 
 def test_engine_uses_async_mysql_driver() -> None:
-    """模板必须使用 aiomysql，避免在异步路由中调用同步数据库驱动。"""
+    """项目必须使用 aiomysql，避免在异步路由中调用同步数据库驱动。"""
 
     assert async_engine.url.drivername == "mysql+aiomysql"
 
