@@ -28,6 +28,8 @@ class Settings(BaseSettings):
 
     # project_name：OpenAPI 文档标题和日志中显示的项目名称。
     project_name: str = "FastAPI Starter"
+    # project_version：当前应用发布版本，会显示在 OpenAPI 和 Swagger 文档中。
+    project_version: str = "1.0.0"
     # debug：是否启用调试模式；生产环境必须关闭，避免响应泄露异常细节。
     debug: bool = False
     # api_v1_prefix：业务接口的统一版本前缀，便于未来同时维护多个 API 版本。
