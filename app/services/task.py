@@ -25,7 +25,6 @@ from app.schemas.task_request import (
     TaskStatusUpdateRequest,
     TaskUpdateRequest,
 )
-from app.schemas.task_response import TaskCreateResponse, TaskListResponse
 
 
 # region 任务创建服务
@@ -68,7 +67,7 @@ async def get_task_list_service(
     db: AsyncSession,
     current_user: User,
     query: TaskListRequest,
-) -> TaskListResponse:
+) -> dict[str, object]:
     """按分页及筛选条件获取当前用户的任务列表。"""
 
     # SQLAlchemy 的 offset 从 0 开始，因此需要根据当前页码换算偏移量。
@@ -85,30 +84,14 @@ async def get_task_list_service(
     # 使用整数运算向上取整；没有任务时总页数为 0。
     total_pages = (total + query.page_size - 1) // query.page_size
 
-    # 将 SQLAlchemy Task 对象显式转换为响应模型，确保字段安全并满足静态类型检查。
-    task_items = [
-        TaskCreateResponse(
-            id=task.id,
-            user_id=task.user_id,
-            title=task.title,
-            description=task.description,
-            status=task.status,
-            priority=task.priority,
-            due_date=task.due_date,
-            completed_at=task.completed_at,
-            created_at=task.created_at,
-            updated_at=task.updated_at,
-        )
-        for task in tasks
-    ]
-
-    return TaskListResponse(
-        items=task_items,
-        total=total,
-        page=query.page,
-        page_size=query.page_size,
-        total_pages=total_pages,
-    )
+    # 直接返回 ORM 列表和分页数据，由 Router 的 response_model 完成字段过滤与序列化。
+    return {
+        "items": tasks,
+        "total": total,
+        "page": query.page,
+        "page_size": query.page_size,
+        "total_pages": total_pages,
+    }
 
 
 # endregion

@@ -361,11 +361,11 @@ async def test_get_task_list_service_returns_pagination_data(monkeypatch) -> Non
         ),
     )
 
-    assert result.items[0].id == task.id
-    assert result.total == 5
-    assert result.page == 2
-    assert result.page_size == 2
-    assert result.total_pages == 3
+    assert result["items"] == [task]
+    assert result["total"] == 5
+    assert result["page"] == 2
+    assert result["page_size"] == 2
+    assert result["total_pages"] == 3
     query_arguments = get_task_list.await_args.kwargs
     assert query_arguments["user_id"] == user.id
     assert query_arguments["offset"] == 2
@@ -386,9 +386,9 @@ async def test_get_task_list_service_handles_empty_result(monkeypatch) -> None:
         query=TaskListRequest(),
     )
 
-    assert result.items == []
-    assert result.total == 0
-    assert result.total_pages == 0
+    assert result["items"] == []
+    assert result["total"] == 0
+    assert result["total_pages"] == 0
 
 
 # endregion

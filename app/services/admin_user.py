@@ -6,17 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.crud.admin_user import get_user_list
 from app.models.user import User
 from app.schemas.admin_user_request import AdminUserListRequest
-from app.schemas.admin_user_response import (
-    AdminUserListItemResponse,
-    AdminUserListResponse,
-)
 
 
 async def get_user_lists_service(
     db: AsyncSession,
     current_user: User,
     query: AdminUserListRequest,
-) -> AdminUserListResponse:
+) -> dict[str, object]:
     """校验管理员账号状态并分页返回用户。
 
     Args:
@@ -56,16 +52,14 @@ async def get_user_lists_service(
     # 使用整数运算向上取整；没有用户时总页数为 0。
     total_pages = (total + query.page_size - 1) // query.page_size
 
-    # 显式转换 ORM 对象，确保只返回允许公开的字段并满足静态类型检查。
-    user_items = [AdminUserListItemResponse.model_validate(user) for user in users]
-
-    return AdminUserListResponse(
-        items=user_items,
-        total=total,
-        page=query.page,
-        page_size=query.page_size,
-        total_pages=total_pages,
-    )
+    # 直接返回 ORM 列表和分页数据，由 Router 的 response_model 完成字段过滤与序列化。
+    return {
+        "items": users,
+        "total": total,
+        "page": query.page,
+        "page_size": query.page_size,
+        "total_pages": total_pages,
+    }
 
 
 __all__ = ["get_user_lists_service"]

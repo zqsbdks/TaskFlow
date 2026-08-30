@@ -24,7 +24,7 @@ async def get_user_lists(
     query: Annotated[AdminUserListRequest, Query()],
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> ResponseModel[AdminUserListResponse]:
+):
     """分页获取用户，仅允许已启用的管理员访问。"""
 
     # GET 查询参数由 AdminUserListRequest 校验，权限和分页计算交给 Service。
@@ -34,7 +34,8 @@ async def get_user_lists(
         query=query,
     )
 
-    return ResponseModel[AdminUserListResponse](
+    # response_model 会把 items 中的 User ORM 对象转换成公开的用户响应字段。
+    return ResponseModel(
         message="获取用户列表成功",
         data=user_list,
     )

@@ -80,6 +80,7 @@ async def get_task_list(
         query=query,
     )
 
+    # response_model 会把 items 中的 Task ORM 对象转换成公开的任务响应字段。
     return ResponseModel(code=200, message="获取任务列表成功", data=task_list)
 
 

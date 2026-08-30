@@ -52,11 +52,11 @@ async def test_get_user_lists_service_returns_all_users_for_admin(monkeypatch) -
         query=AdminUserListRequest(page=2, page_size=2),
     )
 
-    assert result.items[0].id == users[0].id
-    assert result.total == 3
-    assert result.page == 2
-    assert result.page_size == 2
-    assert result.total_pages == 2
+    assert result["items"] == users
+    assert result["total"] == 3
+    assert result["page"] == 2
+    assert result["page_size"] == 2
+    assert result["total_pages"] == 2
     assert get_user_list.await_args.kwargs["offset"] == 2
     assert get_user_list.await_args.kwargs["limit"] == 2
 
@@ -126,14 +126,13 @@ def test_admin_user_list_route_serializes_response(monkeypatch) -> None:
     """真实路由响应应通过 FastAPI 校验并返回用户对象列表。"""
 
     users = [build_user(user_id=1), build_user(user_id=2, role="user")]
-    items = [AdminUserListItemResponse.model_validate(user) for user in users]
-    paginated_users = AdminUserListResponse(
-        items=items,
-        total=2,
-        page=1,
-        page_size=10,
-        total_pages=1,
-    )
+    paginated_users = {
+        "items": users,
+        "total": 2,
+        "page": 1,
+        "page_size": 10,
+        "total_pages": 1,
+    }
     get_user_lists_service = AsyncMock(return_value=paginated_users)
     monkeypatch.setattr(
         admin_user_router_module,
