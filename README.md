@@ -57,7 +57,7 @@ Setup: 克隆后初始化项目
 ```dotenv
 APP_PROJECT_NAME="TaskFlow"
 APP_PROJECT_VERSION="1.0.1"
-APP_DATABASE_URL="mysql+aiomysql://user:password@localhost:3306/taskflow?charset=utf8mb4"
+APP_DATABASE_URL="mysql+aiomysql://TaskFlowWSL:change-me@localhost:3306/taskflow?charset=utf8mb4"
 APP_SECRET_KEY="本地初始化脚本生成的随机密钥"
 ```
 
