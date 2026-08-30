@@ -4,9 +4,19 @@ from fastapi import HTTPException
 from fastapi import status as status_module
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.crud.admin_user import delete_user, get_user_by_id, get_user_list, update_user
+from app.crud.admin_user import (
+    delete_user,
+    get_all_task_list,
+    get_user_by_id,
+    get_user_list,
+    update_user,
+)
 from app.models.user import User
-from app.schemas.admin_user_request import AdminUpdateRequest, AdminUserListRequest
+from app.schemas.admin_user_request import (
+    AdminTaskListRequest,
+    AdminUpdateRequest,
+    AdminUserListRequest,
+)
 
 
 # region 管理员用户列表服务
@@ -57,6 +67,64 @@ async def get_user_lists_service(
     # 直接返回 ORM 列表和分页数据，由 Router 的 response_model 完成字段过滤与序列化。
     return {
         "items": users,
+        "total": total,
+        "page": query.page,
+        "page_size": query.page_size,
+        "total_pages": total_pages,
+    }
+
+
+# endregion
+
+
+# region 管理员任务列表服务
+async def get_all_task_list_service(
+    db: AsyncSession,
+    current_user: User,
+    query: AdminTaskListRequest,
+) -> dict[str, object]:
+    """校验管理员权限并分页返回所有用户的任务。
+
+    Args:
+        db: 当前请求使用的异步数据库会话。
+        current_user: 由访问令牌确定的当前登录用户。
+        query: 已通过 Pydantic 校验的分页参数。
+
+    Returns:
+        当前页任务及其分页信息。
+
+    Raises:
+        HTTPException: 当前用户不是管理员或账号已被禁用时返回 HTTP 403。
+    """
+
+    # 普通用户只能使用自己的任务接口，不能通过这里读取其他用户的任务。
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status_module.HTTP_403_FORBIDDEN,
+            detail="无权限访问",
+        )
+
+    # 已禁用的管理员不能继续执行管理操作。
+    if not current_user.is_active:
+        raise HTTPException(
+            status_code=status_module.HTTP_403_FORBIDDEN,
+            detail="用户已被禁用",
+        )
+
+    # SQLAlchemy 的 offset 从 0 开始，因此根据页码计算需要跳过的任务数。
+    offset = (query.page - 1) * query.page_size
+    tasks, total = await get_all_task_list(
+        db=db,
+        offset=offset,
+        limit=query.page_size,
+    )
+
+    # 使用整数运算向上取整；没有任务时总页数为 0。
+    total_pages = (total + query.page_size - 1) // query.page_size
+
+    # ORM 对象由 Router 声明的 response_model 转换并过滤公开字段。
+    return {
+        "items": tasks,
         "total": total,
         "page": query.page,
         "page_size": query.page_size,
@@ -141,6 +209,7 @@ async def delete_user_service(
 
 __all__ = [
     "delete_user_service",
+    "get_all_task_list_service",
     "get_user_lists_service",
     "update_user_status_service",
 ]

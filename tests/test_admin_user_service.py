@@ -1,5 +1,6 @@
-"""管理员用户 Schema 与 Service 的单元测试。"""
+"""管理员用户 Schema、Service 与 Router 的单元测试。"""
 
+from datetime import datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -9,9 +10,14 @@ from fastapi.testclient import TestClient
 from app.dependencies.auth import get_current_user
 from app.dependencies.db import get_db
 from app.main import create_app
+from app.models.task import Task
 from app.models.user import User
 from app.routers import admin_user as admin_user_router_module
-from app.schemas.admin_user_request import AdminUpdateRequest, AdminUserListRequest
+from app.schemas.admin_user_request import (
+    AdminTaskListRequest,
+    AdminUpdateRequest,
+    AdminUserListRequest,
+)
 from app.schemas.admin_user_response import (
     AdminUserListItemResponse,
     AdminUserListResponse,
@@ -35,6 +41,24 @@ def build_user(
         password_hash="stored-password-hash",
         role=role,
         is_active=is_active,
+    )
+
+
+def build_task(*, task_id: int = 1, user_id: int = 2) -> Task:
+    """构造无需连接数据库的测试任务对象。"""
+
+    now = datetime(2026, 8, 30, 12, 0, 0)
+    return Task(
+        id=task_id,
+        user_id=user_id,
+        title=f"任务-{task_id}",
+        description=None,
+        status="pending",
+        priority=3,
+        due_date=None,
+        completed_at=None,
+        created_at=now,
+        updated_at=now,
     )
 
 
@@ -174,6 +198,84 @@ def test_admin_user_list_route_serializes_response(monkeypatch) -> None:
             "total_pages": 1,
         },
     }
+
+
+# region 管理员任务列表测试
+@pytest.mark.asyncio
+async def test_get_all_task_list_service_returns_paginated_tasks(monkeypatch) -> None:
+    """已启用的管理员应取得所有用户的分页任务列表。"""
+
+    tasks = [build_task(task_id=3, user_id=2)]
+    get_all_task_list = AsyncMock(return_value=(tasks, 5))
+    monkeypatch.setattr(admin_user_service, "get_all_task_list", get_all_task_list)
+
+    result = await admin_user_service.get_all_task_list_service(
+        db=AsyncMock(),
+        current_user=build_user(),
+        query=AdminTaskListRequest(page=2, page_size=2),
+    )
+
+    assert result["items"] == tasks
+    assert result["total"] == 5
+    assert result["page"] == 2
+    assert result["page_size"] == 2
+    assert result["total_pages"] == 3
+    assert get_all_task_list.await_args.kwargs["offset"] == 2
+    assert get_all_task_list.await_args.kwargs["limit"] == 2
+
+
+@pytest.mark.asyncio
+async def test_get_all_task_list_service_rejects_non_admin(monkeypatch) -> None:
+    """普通用户访问全部任务列表时应返回 403，且不执行查询。"""
+
+    get_all_task_list = AsyncMock()
+    monkeypatch.setattr(admin_user_service, "get_all_task_list", get_all_task_list)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await admin_user_service.get_all_task_list_service(
+            db=AsyncMock(),
+            current_user=build_user(role="user"),
+            query=AdminTaskListRequest(),
+        )
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == "无权限访问"
+    get_all_task_list.assert_not_awaited()
+
+
+def test_get_all_task_list_route_serializes_response(monkeypatch) -> None:
+    """管理员任务列表路由应返回任务及完整分页信息。"""
+
+    tasks = [build_task(task_id=3, user_id=2)]
+    paginated_tasks = {
+        "items": tasks,
+        "total": 1,
+        "page": 1,
+        "page_size": 10,
+        "total_pages": 1,
+    }
+    get_all_task_list_service = AsyncMock(return_value=paginated_tasks)
+    monkeypatch.setattr(
+        admin_user_router_module,
+        "get_all_task_list_service",
+        get_all_task_list_service,
+    )
+
+    application = create_app()
+    application.dependency_overrides[get_db] = lambda: AsyncMock()
+    application.dependency_overrides[get_current_user] = lambda: build_user()
+
+    with TestClient(application) as client:
+        response = client.get("/api/v1/admin/user/task/list?page=1&page_size=10")
+
+    assert response.status_code == 200
+    assert response.json()["message"] == "获取全部任务列表成功"
+    assert response.json()["data"]["total"] == 1
+    assert response.json()["data"]["items"][0]["id"] == 3
+    assert response.json()["data"]["items"][0]["user_id"] == 2
+
+
+# endregion
 
 
 @pytest.mark.asyncio

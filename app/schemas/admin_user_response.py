@@ -1,7 +1,8 @@
-
 """管理员用户接口响应模型。"""
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.schemas.task_response import TaskCreateResponse
 
 
 # region 管理员用户列表项响应
@@ -16,6 +17,21 @@ class AdminUserListItemResponse(BaseModel):
 
     # 允许 Pydantic 直接从 SQLAlchemy User 对象读取响应字段。
     model_config = ConfigDict(from_attributes=True)
+
+
+# endregion
+
+
+# region 管理员任务分页响应
+class AdminTaskListResponse(BaseModel):
+    """管理员查看的全部任务及其分页信息。"""
+
+    # TaskCreateResponse 已包含 user_id，可用于识别每条任务的所属用户。
+    items: list[TaskCreateResponse] = Field(default_factory=list, description="当前页任务")
+    total: int = Field(..., description="任务总数")
+    page: int = Field(..., description="当前页码")
+    page_size: int = Field(..., description="每页条数")
+    total_pages: int = Field(..., description="总页数")
 
 
 # endregion
@@ -38,4 +54,4 @@ class AdminUserListResponse(BaseModel):
 # endregion
 
 
-__all__ = ["AdminUserListItemResponse", "AdminUserListResponse"]
+__all__ = ["AdminTaskListResponse", "AdminUserListItemResponse", "AdminUserListResponse"]

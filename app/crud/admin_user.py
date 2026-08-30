@@ -6,6 +6,7 @@
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.task import Task
 from app.models.user import User
 
 
@@ -33,7 +34,32 @@ async def get_user_list(
 # endregion
 
 
+# region 管理员任务列表查询
+async def get_all_task_list(
+    db: AsyncSession,
+    offset: int,
+    limit: int,
+) -> tuple[list[Task], int]:
+    """分页查询所有用户的任务，并返回任务总数。"""
+
+    # 数量查询不限制 user_id，也不应用分页，用于计算全部任务的页数。
+    count_statement = select(func.count(Task.id))
+    count_result = await db.scalar(count_statement)
+    total = count_result if count_result is not None else 0
+
+    # 按主键倒序返回最新任务，再应用当前页偏移量和每页条数。
+    task_statement = select(Task).order_by(Task.id.desc()).offset(offset).limit(limit)
+    task_result = await db.scalars(task_statement)
+    tasks = list(task_result.all())
+
+    return tasks, total
+
+
+# endregion
+
+
 # region 管理员用户查询
+
 
 async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:
     """按主键查询用户，并返回用户对象。"""
@@ -45,6 +71,7 @@ async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:
 
 
 # region 管理员更新用户状态
+
 
 async def update_user(
     db: AsyncSession,
@@ -66,6 +93,7 @@ async def update_user(
 
 # region 管理员删除用户
 
+
 async def delete_user(db: AsyncSession, user: User) -> None:
     """删除指定用户并提交事务。"""
 
@@ -77,4 +105,10 @@ async def delete_user(db: AsyncSession, user: User) -> None:
 # endregion
 
 
-__all__ = ["delete_user", "get_user_by_id", "get_user_list", "update_user"]
+__all__ = [
+    "delete_user",
+    "get_all_task_list",
+    "get_user_by_id",
+    "get_user_list",
+    "update_user",
+]

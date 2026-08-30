@@ -15,6 +15,18 @@ class AdminUserListRequest(BaseModel):
 # endregion
 
 
+# region 管理员任务列表请求
+class AdminTaskListRequest(BaseModel):
+    """管理员获取全部任务时接收的分页参数。"""
+
+    # page 从 1 开始，page_size 上限用于避免单次读取过多任务。
+    page: int = Field(default=1, ge=1, description="当前页码")
+    page_size: int = Field(default=10, ge=1, le=100, description="每页条数")
+
+
+# endregion
+
+
 # region 管理员更新用户状态请求
 class AdminUpdateRequest(BaseModel):
     """管理员更新用户启用状态时提交的数据。"""
@@ -25,4 +37,4 @@ class AdminUpdateRequest(BaseModel):
 # endregion
 
 
-__all__ = ["AdminUpdateRequest", "AdminUserListRequest"]
+__all__ = ["AdminTaskListRequest", "AdminUpdateRequest", "AdminUserListRequest"]

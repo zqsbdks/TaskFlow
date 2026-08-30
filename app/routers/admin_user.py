@@ -8,11 +8,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies.auth import get_current_user
 from app.dependencies.db import get_db
 from app.models.user import User
-from app.schemas.admin_user_request import AdminUpdateRequest, AdminUserListRequest
-from app.schemas.admin_user_response import AdminUserListResponse
+from app.schemas.admin_user_request import (
+    AdminTaskListRequest,
+    AdminUpdateRequest,
+    AdminUserListRequest,
+)
+from app.schemas.admin_user_response import AdminTaskListResponse, AdminUserListResponse
 from app.schemas.base import ResponseModel
 from app.services.admin_user import (
     delete_user_service,
+    get_all_task_list_service,
     get_user_lists_service,
     update_user_status_service,
 )
@@ -88,6 +93,35 @@ async def delete_user(
     )
 
     return ResponseModel(message="删除用户成功", data=None)
+
+
+# endregion
+
+
+# region 管理员任务列表
+@admin_user_router.get(
+    "/task/list",
+    response_model=ResponseModel[AdminTaskListResponse],
+)
+async def get_all_task_list(
+    query: Annotated[AdminTaskListRequest, Query()],
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """分页获取所有用户的任务，仅允许已启用的管理员访问。"""
+
+    # GET 查询参数由 AdminTaskListRequest 校验，权限及分页计算交给 Service。
+    task_list = await get_all_task_list_service(
+        db=db,
+        current_user=current_user,
+        query=query,
+    )
+
+    # 每条任务包含 user_id，管理员可以据此判断任务所属用户。
+    return ResponseModel(
+        message="获取全部任务列表成功",
+        data=task_list,
+    )
 
 
 # endregion
