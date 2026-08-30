@@ -52,13 +52,6 @@ class Settings(BaseSettings):
     # access_token_expire_minutes：访问令牌有效时间，单位为分钟。
     access_token_expire_minutes: int = 30
 
-    # redis_url：可选 Redis 连接地址；为空时不会创建客户端或初始化缓存。
-    redis_url: str | None = None
-    # redis_max_connections：Redis 连接池的最大连接数量，最小值为 1。
-    redis_max_connections: int = Field(default=10, ge=1)
-    # redis_timeout：单次 Redis 网络操作的超时时间，单位为秒且必须大于 0。
-    redis_timeout: float = Field(default=5.0, gt=0)
-
     # cors_origins：允许跨域请求的来源列表；default_factory 避免实例间共享列表。
     cors_origins: list[str] = Field(default_factory=lambda: ["*"])
 

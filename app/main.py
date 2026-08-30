@@ -4,7 +4,11 @@
 用于确认服务是否成功启动。
 """
 
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
@@ -13,6 +17,9 @@ from app.core.logging import configure_logging
 from app.core.middlewares import register_middlewares
 from app.routers import api_router
 from app.schemas import ResponseModel
+
+# frontend_dir：项目自带的零构建前端目录，由 FastAPI 直接托管。
+frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
 
 
 def create_app() -> FastAPI:
@@ -29,7 +36,7 @@ def create_app() -> FastAPI:
     configure_logging()
 
     # application：本次工厂调用创建的 FastAPI 实例，测试之间不会共享路由状态。
-    # lifespan 统一接管 Redis、数据库连接池等资源的启动与释放。
+    # lifespan 统一接管数据库连接池等资源的启动与释放。
     application = FastAPI(
         title=settings.project_name,
         version=settings.project_version,
@@ -41,8 +48,17 @@ def create_app() -> FastAPI:
     register_middlewares(application)
     register_exception_handlers(application)
 
+    # 静态资源使用独立路径，避免与 /api/v1 下的业务接口发生冲突。
+    application.mount("/static", StaticFiles(directory=frontend_dir), name="static")
+
     # 所有业务路由统一带上版本前缀，例如 /api/v1/users。
     application.include_router(api_router, prefix=settings.api_v1_prefix)
+
+    @application.get("/app", include_in_schema=False)
+    async def frontend_app() -> FileResponse:
+        """返回项目内置的任务管理前端页面。"""
+
+        return FileResponse(frontend_dir / "index.html")
 
     @application.get("/", response_model=ResponseModel[dict[str, str]])
     async def read_root() -> ResponseModel[dict[str, str]]:

@@ -34,6 +34,17 @@ def test_health() -> None:
     assert response.json()["data"] == {"status": "ok"}
 
 
+def test_frontend_app_is_available() -> None:
+    """内置前端入口应返回 HTML 页面。"""
+
+    with TestClient(create_app()) as client:
+        response = client.get("/app")
+
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "TaskFlow" in response.text
+
+
 def test_not_found_uses_standard_response() -> None:
     """不存在的路径也应经过全局异常处理器统一包装。"""
 

@@ -1,7 +1,7 @@
 # FastAPI 通用异步项目骨架
 
 这是一个可直接复制的新项目基础结构，包含 FastAPI、Pydantic Settings、
-SQLAlchemy 2.x 异步 MySQL 会话、Alembic 异步迁移、可选 Redis 缓存、JWT、密码哈希、
+SQLAlchemy 2.x 异步 MySQL 会话、Alembic 异步迁移、JWT、密码哈希、
 CORS 和统一异常响应。
 
 ## 快速开始
@@ -77,8 +77,7 @@ APP_DATABASE_URL="mysql+aiomysql://user:password@localhost:3306/dbname?charset=u
 
 ## 配置约定
 
-所有环境变量统一使用 `APP_` 前缀。Redis 默认关闭；只有设置
-`APP_REDIS_URL` 后才会创建连接。生产环境应设置真实的 CORS 来源、关闭调试与
+所有环境变量统一使用 `APP_` 前缀。生产环境应设置真实的 CORS 来源、关闭调试与
 SQL 输出，并替换 `APP_SECRET_KEY`。
 
 日志默认输出到控制台。设置 `APP_LOG_FILE="logs/app.log"` 后，会同时启用

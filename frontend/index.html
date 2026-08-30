@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="TaskFlow 任务与标签管理工作台" />
+    <title>TaskFlow · 任务工作台</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <section id="auth-view" class="auth-shell">
+      <div class="auth-story">
+        <a class="brand brand-light" href="/app" aria-label="TaskFlow 首页">
+          <span class="brand-mark">TF</span>
+          <span>TaskFlow</span>
+        </a>
+        <div class="story-copy">
+          <span class="eyebrow">FOCUS · PLAN · FINISH</span>
+          <h1>把今天的想法，<br />变成明天的成果。</h1>
+          <p>一个轻量、清晰的任务工作台。整理优先级、跟踪进度，并让每一步都有迹可循。</p>
+        </div>
+        <div class="story-note">
+          <span class="note-dot"></span>
+          <p>从最重要的一件事开始。</p>
+        </div>
+      </div>
+
+      <div class="auth-panel">
+        <div class="auth-card">
+          <div class="mobile-brand">
+            <span class="brand-mark">TF</span>
+            <strong>TaskFlow</strong>
+          </div>
+          <div class="auth-heading">
+            <p class="kicker">欢迎回来</p>
+            <h2 id="auth-title">登录你的工作台</h2>
+            <p id="auth-subtitle">继续推进那些真正重要的事情。</p>
+          </div>
+
+          <div class="auth-tabs" role="tablist">
+            <button class="auth-tab active" type="button" data-auth-tab="login">登录</button>
+            <button class="auth-tab" type="button" data-auth-tab="register">创建账户</button>
+          </div>
+
+          <form id="login-form" class="auth-form">
+            <label>
+              <span>邮箱</span>
+              <input name="email" type="email" autocomplete="email" placeholder="name@example.com" required />
+            </label>
+            <label>
+              <span>密码</span>
+              <input name="password" type="password" autocomplete="current-password" placeholder="请输入密码" required />
+            </label>
+            <button class="button button-primary button-block" type="submit">
+              <span>进入工作台</span><span aria-hidden="true">→</span>
+            </button>
+          </form>
+
+          <form id="register-form" class="auth-form hidden">
+            <label>
+              <span>用户名</span>
+              <input name="username" maxlength="50" autocomplete="username" placeholder="你的名字" required />
+            </label>
+            <label>
+              <span>邮箱</span>
+              <input name="email" type="email" autocomplete="email" placeholder="name@example.com" required />
+            </label>
+            <label>
+              <span>密码</span>
+              <input name="password" type="password" maxlength="50" autocomplete="new-password" placeholder="设置登录密码" required />
+            </label>
+            <button class="button button-primary button-block" type="submit">
+              <span>创建账户</span><span aria-hidden="true">→</span>
+            </button>
+          </form>
+
+          <p class="auth-footnote">登录即表示你正在使用 TaskFlow 1.0.0</p>
+        </div>
+      </div>
+    </section>
+
+    <div id="app-view" class="app-shell hidden">
+      <aside class="sidebar">
+        <a class="brand" href="/app">
+          <span class="brand-mark">TF</span>
+          <span>TaskFlow</span>
+        </a>
+
+        <nav class="sidebar-nav" aria-label="主导航">
+          <button class="nav-item active" data-view="dashboard" type="button">
+            <span class="nav-icon">⌂</span><span>任务概览</span>
+          </button>
+          <button class="nav-item" data-view="tags" type="button">
+            <span class="nav-icon">#</span><span>标签管理</span>
+          </button>
+          <button class="nav-item" data-view="profile" type="button">
+            <span class="nav-icon">◎</span><span>账户设置</span>
+          </button>
+          <button id="admin-nav" class="nav-item hidden" data-view="admin" type="button">
+            <span class="nav-icon">◇</span><span>管理中心</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="user-chip">
+            <span id="sidebar-avatar" class="avatar">U</span>
+            <span class="user-chip-copy">
+              <strong id="sidebar-username">用户</strong>
+              <small id="sidebar-role">普通用户</small>
+            </span>
+          </div>
+          <button id="logout-button" class="icon-button" type="button" title="退出登录">↗</button>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <button id="menu-button" class="menu-button" type="button" aria-label="打开菜单">☰</button>
+          <div>
+            <p id="today-label" class="topbar-date"></p>
+            <h1 id="page-title">任务概览</h1>
+          </div>
+          <div class="topbar-actions">
+            <button id="refresh-button" class="button button-ghost" type="button">刷新</button>
+            <button id="new-task-button" class="button button-primary" type="button">
+              <span class="button-plus">＋</span> 新建任务
+            </button>
+          </div>
+        </header>
+
+        <section id="dashboard-view" class="view-section">
+          <div class="welcome-row">
+            <div>
+              <span class="eyebrow dark">TODAY'S OVERVIEW</span>
+              <h2>你好，<span id="welcome-name">朋友</span></h2>
+              <p>把注意力放在下一步，而不是所有步骤。</p>
+            </div>
+            <div class="progress-orbit" aria-label="当前页完成率">
+              <strong id="completion-rate">0%</strong>
+              <span>完成率</span>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <article class="stat-card stat-dark">
+              <div class="stat-icon">▦</div>
+              <p>任务总数</p>
+              <strong id="stat-total">0</strong>
+              <small>符合当前筛选条件</small>
+            </article>
+            <article class="stat-card">
+              <div class="stat-icon amber">◷</div>
+              <p>待处理</p>
+              <strong id="stat-pending">0</strong>
+              <small>当前页任务</small>
+            </article>
+            <article class="stat-card">
+              <div class="stat-icon blue">↗</div>
+              <p>进行中</p>
+              <strong id="stat-progress">0</strong>
+              <small>正在推进</small>
+            </article>
+            <article class="stat-card">
+              <div class="stat-icon green">✓</div>
+              <p>已完成</p>
+              <strong id="stat-completed">0</strong>
+              <small>当前页成果</small>
+            </article>
+          </div>
+
+          <div class="content-card task-panel">
+            <div class="section-header">
+              <div>
+                <p class="section-kicker">MY TASKS</p>
+                <h3>任务列表</h3>
+              </div>
+              <div class="filters">
+                <select id="status-filter" aria-label="按状态筛选">
+                  <option value="">全部状态</option>
+                  <option value="pending">待处理</option>
+                  <option value="in_progress">进行中</option>
+                  <option value="completed">已完成</option>
+                  <option value="cancelled">已取消</option>
+                </select>
+                <select id="priority-filter" aria-label="按优先级筛选">
+                  <option value="">全部优先级</option>
+                  <option value="5">P5 · 最高</option>
+                  <option value="4">P4 · 较高</option>
+                  <option value="3">P3 · 普通</option>
+                  <option value="2">P2 · 较低</option>
+                  <option value="1">P1 · 最低</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="task-list" class="task-list"></div>
+            <div id="task-empty" class="empty-state hidden">
+              <div class="empty-symbol">✓</div>
+              <h4>这里还很安静</h4>
+              <p>创建第一个任务，让计划开始运转。</p>
+              <button class="button button-primary" data-open-task-modal type="button">新建任务</button>
+            </div>
+            <div id="task-pagination" class="pagination"></div>
+          </div>
+        </section>
+
+        <section id="tags-view" class="view-section hidden">
+          <div class="split-layout">
+            <div class="content-card">
+              <div class="section-header">
+                <div><p class="section-kicker">LABEL LIBRARY</p><h3>我的标签</h3></div>
+              </div>
+              <div id="tag-list" class="tag-grid"></div>
+              <div id="tag-empty" class="empty-state compact hidden">
+                <p>还没有标签，在右侧创建一个吧。</p>
+              </div>
+            </div>
+            <div class="content-card sticky-card">
+              <p class="section-kicker">NEW LABEL</p>
+              <h3>创建标签</h3>
+              <form id="tag-form" class="stack-form">
+                <label><span>标签名称</span><input name="name" maxlength="50" placeholder="例如：后端" required /></label>
+                <label><span>标签颜色</span><div class="color-field"><input name="color" type="color" value="#3b82f6" /><code id="color-value">#3B82F6</code></div></label>
+                <button class="button button-primary button-block" type="submit">创建标签</button>
+              </form>
+              <hr />
+              <p class="section-kicker">TASK BINDING</p>
+              <h3>关联到任务</h3>
+              <form id="tag-binding-form" class="stack-form">
+                <label><span>选择任务</span><select id="binding-task" required></select></label>
+                <label><span>选择标签</span><select id="binding-tag" required></select></label>
+                <div class="button-row">
+                  <button class="button button-primary" type="submit">添加</button>
+                  <button id="remove-tag-button" class="button button-danger-soft" type="button">移除</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <section id="profile-view" class="view-section hidden">
+          <div class="profile-grid">
+            <div class="content-card profile-summary">
+              <span id="profile-avatar" class="profile-avatar">U</span>
+              <h2 id="profile-name">用户</h2>
+              <p id="profile-email">email@example.com</p>
+              <span id="profile-role" class="role-badge">普通用户</span>
+            </div>
+            <div class="content-card">
+              <p class="section-kicker">PROFILE</p><h3>基本资料</h3>
+              <form id="profile-form" class="stack-form two-column">
+                <label><span>用户名</span><input name="username" maxlength="50" /></label>
+                <label><span>邮箱</span><input name="email" type="email" /></label>
+                <button class="button button-primary" type="submit">保存资料</button>
+              </form>
+              <hr />
+              <p class="section-kicker">SECURITY</p><h3>修改密码</h3>
+              <form id="password-form" class="stack-form two-column">
+                <label><span>当前密码</span><input name="old_password" type="password" required /></label>
+                <label><span>新密码</span><input name="new_password" type="password" minlength="8" required /></label>
+                <button class="button button-secondary" type="submit">更新密码</button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <section id="admin-view" class="view-section hidden">
+          <div class="admin-tabs">
+            <button class="admin-tab active" data-admin-tab="users" type="button">用户管理</button>
+            <button class="admin-tab" data-admin-tab="tasks" type="button">全站任务</button>
+          </div>
+          <div class="content-card">
+            <div class="section-header"><div><p class="section-kicker">ADMIN CONSOLE</p><h3 id="admin-table-title">用户列表</h3></div></div>
+            <div class="table-wrap"><table><thead id="admin-table-head"></thead><tbody id="admin-table-body"></tbody></table></div>
+            <div id="admin-pagination" class="pagination"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="task-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div><p class="section-kicker">TASK EDITOR</p><h2 id="task-modal-title">新建任务</h2></div>
+          <button class="modal-close" data-close-modal type="button" aria-label="关闭">×</button>
+        </div>
+        <form id="task-form" class="stack-form">
+          <input name="task_id" type="hidden" />
+          <label><span>任务标题</span><input name="title" maxlength="200" placeholder="要完成什么？" required /></label>
+          <label><span>任务描述</span><textarea name="description" maxlength="200" rows="4" placeholder="补充一些背景或执行说明"></textarea></label>
+          <div class="form-grid">
+            <label><span>优先级</span><select name="priority"><option value="1">P1 · 最低</option><option value="2">P2 · 较低</option><option value="3" selected>P3 · 普通</option><option value="4">P4 · 较高</option><option value="5">P5 · 最高</option></select></label>
+            <label><span>截止时间</span><input name="due_date" type="datetime-local" /></label>
+          </div>
+          <div class="modal-actions">
+            <button class="button button-ghost" data-close-modal type="button">取消</button>
+            <button class="button button-primary" type="submit">保存任务</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="toast-region" class="toast-region" aria-live="polite"></div>
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>
