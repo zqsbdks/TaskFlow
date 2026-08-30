@@ -182,6 +182,11 @@ async def test_update_user_status_service_updates_user_for_admin(monkeypatch) ->
 
     target_user = build_user(user_id=2, role="user", is_active=False)
     update_user = AsyncMock(return_value=target_user)
+    monkeypatch.setattr(
+        admin_user_service,
+        "get_user_by_id",
+        AsyncMock(return_value=target_user),
+    )
     monkeypatch.setattr(admin_user_service, "update_user", update_user)
     status_data = AdminUpdateRequest(is_active=False)
 
@@ -193,15 +198,18 @@ async def test_update_user_status_service_updates_user_for_admin(monkeypatch) ->
     )
 
     assert result is None
-    assert update_user.await_args.kwargs["user_id"] == target_user.id
-    assert update_user.await_args.kwargs["status"] is status_data
+    assert update_user.await_args.kwargs["user"] is target_user
+    assert update_user.await_args.kwargs["is_active"] is False
 
 
 @pytest.mark.asyncio
 async def test_update_user_status_service_rejects_missing_user(monkeypatch) -> None:
     """目标用户不存在时应返回 HTTP 404。"""
 
-    monkeypatch.setattr(admin_user_service, "update_user", AsyncMock(return_value=None))
+    get_user_by_id = AsyncMock(return_value=None)
+    update_user = AsyncMock()
+    monkeypatch.setattr(admin_user_service, "get_user_by_id", get_user_by_id)
+    monkeypatch.setattr(admin_user_service, "update_user", update_user)
 
     with pytest.raises(HTTPException) as exc_info:
         await admin_user_service.update_user_status_service(
@@ -213,6 +221,7 @@ async def test_update_user_status_service_rejects_missing_user(monkeypatch) -> N
 
     assert exc_info.value.status_code == 404
     assert exc_info.value.detail == "用户不存在"
+    update_user.assert_not_awaited()
 
 
 def test_update_user_status_route_returns_success(monkeypatch) -> None:
@@ -243,3 +252,74 @@ def test_update_user_status_route_returns_success(monkeypatch) -> None:
     }
     assert update_status.await_args.kwargs["user_id"] == 2
     assert not update_status.await_args.kwargs["status"].is_active
+
+
+@pytest.mark.asyncio
+async def test_delete_user_service_deletes_user_for_admin(monkeypatch) -> None:
+    """已启用的管理员应能删除存在的目标用户。"""
+
+    target_user = build_user(user_id=2, role="user")
+    get_user_by_id = AsyncMock(return_value=target_user)
+    delete_user = AsyncMock(return_value=None)
+    monkeypatch.setattr(admin_user_service, "get_user_by_id", get_user_by_id)
+    monkeypatch.setattr(admin_user_service, "delete_user", delete_user)
+    db = AsyncMock()
+
+    result = await admin_user_service.delete_user_service(
+        db=db,
+        user_id=target_user.id,
+        current_user=build_user(),
+    )
+
+    assert result is None
+    delete_user.assert_awaited_once_with(db=db, user=target_user)
+
+
+@pytest.mark.asyncio
+async def test_delete_user_service_rejects_missing_user(monkeypatch) -> None:
+    """删除不存在的用户时应返回 HTTP 404，且不执行删除。"""
+
+    delete_user = AsyncMock()
+    monkeypatch.setattr(
+        admin_user_service,
+        "get_user_by_id",
+        AsyncMock(return_value=None),
+    )
+    monkeypatch.setattr(admin_user_service, "delete_user", delete_user)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await admin_user_service.delete_user_service(
+            db=AsyncMock(),
+            user_id=999,
+            current_user=build_user(),
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "用户不存在"
+    delete_user.assert_not_awaited()
+
+
+def test_delete_user_route_returns_success(monkeypatch) -> None:
+    """删除接口应调用 Service 并返回统一成功响应。"""
+
+    delete_service = AsyncMock(return_value=None)
+    monkeypatch.setattr(
+        admin_user_router_module,
+        "delete_user_service",
+        delete_service,
+    )
+
+    application = create_app()
+    application.dependency_overrides[get_db] = lambda: AsyncMock()
+    application.dependency_overrides[get_current_user] = lambda: build_user()
+
+    with TestClient(application) as client:
+        response = client.delete("/api/v1/admin/user/delete/2")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "code": 200,
+        "message": "删除用户成功",
+        "data": None,
+    }
+    assert delete_service.await_args.kwargs["user_id"] == 2

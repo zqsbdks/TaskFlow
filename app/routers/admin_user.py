@@ -11,7 +11,11 @@ from app.models.user import User
 from app.schemas.admin_user_request import AdminUpdateRequest, AdminUserListRequest
 from app.schemas.admin_user_response import AdminUserListResponse
 from app.schemas.base import ResponseModel
-from app.services.admin_user import get_user_lists_service, update_user_status_service
+from app.services.admin_user import (
+    delete_user_service,
+    get_user_lists_service,
+    update_user_status_service,
+)
 
 admin_user_router = APIRouter(prefix="/admin/user", tags=["管理员用户"])
 
@@ -63,6 +67,27 @@ async def update_user_status(
     )
 
     return ResponseModel(message="更新用户状态成功", data=None)
+
+
+# endregion
+
+
+# region 管理员删除用户
+@admin_user_router.delete("/delete/{user_id}", response_model=ResponseModel[None])
+async def delete_user(
+    user_id: int = Path(..., ge=1, description="要删除的用户 ID"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """删除指定用户，仅允许已启用的管理员操作。"""
+
+    await delete_user_service(
+        db=db,
+        user_id=user_id,
+        current_user=current_user,
+    )
+
+    return ResponseModel(message="删除用户成功", data=None)
 
 
 # endregion

@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from fastapi import status as status_module
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.crud.admin_user import get_user_list, update_user
+from app.crud.admin_user import delete_user, get_user_by_id, get_user_list, update_user
 from app.models.user import User
 from app.schemas.admin_user_request import AdminUpdateRequest, AdminUserListRequest
 
@@ -88,20 +88,59 @@ async def update_user_status_service(
             status_code=status_module.HTTP_403_FORBIDDEN,
             detail="用户已被禁用",
         )
-
-    updated_user = await update_user(
-        db=db,
-        user_id=user_id,
-        status=status,
-    )
-    if updated_user is None:
+    user = await get_user_by_id(db, user_id)
+    if user is None:
         raise HTTPException(
             status_code=status_module.HTTP_404_NOT_FOUND,
             detail="用户不存在",
         )
 
+    await update_user(
+        db=db,
+        user=user,
+        is_active=status.is_active,
+    )
+
 
 # endregion
 
 
-__all__ = ["get_user_lists_service", "update_user_status_service"]
+# region 管理员删除用户服务
+async def delete_user_service(
+    db: AsyncSession,
+    user_id: int,
+    current_user: User,
+) -> None:
+    """校验管理员权限并删除指定用户。"""
+
+    # 权限判断属于业务规则，放在 Service，不放入 CRUD。
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status_module.HTTP_403_FORBIDDEN,
+            detail="无权限访问",
+        )
+
+    if not current_user.is_active:
+        raise HTTPException(
+            status_code=status_module.HTTP_403_FORBIDDEN,
+            detail="用户已被禁用",
+        )
+
+    user = await get_user_by_id(db=db, user_id=user_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status_module.HTTP_404_NOT_FOUND,
+            detail="用户不存在",
+        )
+
+    await delete_user(db=db, user=user)
+
+
+# endregion
+
+
+__all__ = [
+    "delete_user_service",
+    "get_user_lists_service",
+    "update_user_status_service",
+]
