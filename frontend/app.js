@@ -161,9 +161,10 @@ async function handleLogin(event) {
 
 async function handleRegister(event) {
   event.preventDefault();
+  const formElement = event.currentTarget;
   const submitButton = event.submitter;
   setButtonBusy(submitButton, true, "正在创建…");
-  const form = new FormData(event.currentTarget);
+  const form = new FormData(formElement);
 
   try {
     await api("/users/register", {
@@ -174,7 +175,7 @@ async function handleRegister(event) {
         password: form.get("password"),
       }),
     });
-    event.currentTarget.reset();
+    formElement.reset();
     switchAuthTab("login");
     elements.loginForm.elements.email.value = form.get("email");
     showToast("账户创建成功，请登录");
@@ -284,6 +285,10 @@ function taskTemplate(task) {
   const completed = task.status === "completed";
   const dueDate = task.due_date ? formatDate(task.due_date) : "无截止时间";
   const description = task.description ? escapeHtml(task.description) : "暂无描述";
+  const tags = (task.tags || []).map((tag) => `
+    <span class="task-tag" style="--tag-color: ${safeColor(tag.color)}">
+      <span class="task-tag-dot"></span>${escapeHtml(tag.name)}
+    </span>`).join("");
   return `
     <article class="task-item" data-task-id="${task.id}">
       <button class="status-toggle ${completed ? "completed" : ""}" data-action="toggle-complete" type="button" title="${completed ? "重新打开" : "标记完成"}">✓</button>
@@ -294,6 +299,7 @@ function taskTemplate(task) {
             ${Object.entries(statusLabels).map(([value, label]) => `<option value="${value}" ${value === task.status ? "selected" : ""}>${label}</option>`).join("")}
           </select>
           <span class="priority-badge ${task.priority >= 4 ? "high" : ""}">P${task.priority}</span>
+          ${tags ? `<span class="task-tags">${tags}</span>` : ""}
           <span>${description}</span>
         </div>
       </div>
@@ -458,17 +464,18 @@ function renderTags() {
 
 async function handleTagCreate(event) {
   event.preventDefault();
+  const formElement = event.currentTarget;
   const submitButton = event.submitter;
-  const form = new FormData(event.currentTarget);
+  const form = new FormData(formElement);
   setButtonBusy(submitButton, true, "创建中…");
   try {
     await api("/tags/create", {
       method: "POST",
       body: JSON.stringify({ name: form.get("name").trim(), color: form.get("color").toUpperCase() }),
     });
-    event.currentTarget.reset();
-    event.currentTarget.elements.color.value = "#3b82f6";
-    handleColorChange({ target: event.currentTarget.elements.color });
+    formElement.reset();
+    formElement.elements.color.value = "#3b82f6";
+    handleColorChange({ target: formElement.elements.color });
     showToast("标签已创建");
     await loadTags();
   } catch (error) {
@@ -501,17 +508,19 @@ function populateBindingOptions() {
 
 async function handleTagBinding(event) {
   event.preventDefault();
+  const submitButton = event.submitter;
   const taskId = elements.bindingTask.value;
   const tagId = elements.bindingTag.value;
   if (!taskId || !tagId) return showToast("请先选择任务和标签", "error");
-  setButtonBusy(event.submitter, true, "添加中…");
+  setButtonBusy(submitButton, true, "添加中…");
   try {
     await api(`/tags/task/${taskId}/tag/${tagId}`, { method: "POST" });
     showToast("标签已添加到任务");
+    await loadTasks();
   } catch (error) {
     showToast(error.message, "error");
   } finally {
-    setButtonBusy(event.submitter, false);
+    setButtonBusy(submitButton, false);
   }
 }
 
@@ -523,6 +532,7 @@ async function handleTagRemoval() {
   try {
     await api(`/tags/task/${taskId}/tag/${tagId}`, { method: "DELETE" });
     showToast("已从任务移除标签");
+    await loadTasks();
   } catch (error) {
     showToast(error.message, "error");
   } finally {
@@ -532,12 +542,13 @@ async function handleTagRemoval() {
 
 async function handleProfileUpdate(event) {
   event.preventDefault();
+  const submitButton = event.submitter;
   const form = new FormData(event.currentTarget);
   const payload = {
     username: form.get("username").trim(),
     email: form.get("email").trim(),
   };
-  setButtonBusy(event.submitter, true, "保存中…");
+  setButtonBusy(submitButton, true, "保存中…");
   try {
     const response = await api("/users/update", { method: "PUT", body: JSON.stringify(payload) });
     state.user = { ...state.user, ...response.data };
@@ -547,25 +558,27 @@ async function handleProfileUpdate(event) {
   } catch (error) {
     showToast(error.message, "error");
   } finally {
-    setButtonBusy(event.submitter, false);
+    setButtonBusy(submitButton, false);
   }
 }
 
 async function handlePasswordUpdate(event) {
   event.preventDefault();
-  const form = new FormData(event.currentTarget);
-  setButtonBusy(event.submitter, true, "更新中…");
+  const formElement = event.currentTarget;
+  const submitButton = event.submitter;
+  const form = new FormData(formElement);
+  setButtonBusy(submitButton, true, "更新中…");
   try {
     await api("/users/password", {
       method: "PUT",
       body: JSON.stringify({ old_password: form.get("old_password"), new_password: form.get("new_password") }),
     });
-    event.currentTarget.reset();
+    formElement.reset();
     showToast("密码已更新");
   } catch (error) {
     showToast(error.message, "error");
   } finally {
-    setButtonBusy(event.submitter, false);
+    setButtonBusy(submitButton, false);
   }
 }
 

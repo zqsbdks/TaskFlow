@@ -4,6 +4,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.tag_response import TagListResponse
+
 
 # region 任务响应
 class TaskCreateResponse(BaseModel):
@@ -28,10 +30,16 @@ class TaskCreateResponse(BaseModel):
 
 
 # region 任务列表响应
+class TaskListItemResponse(TaskCreateResponse):
+    """任务列表项，并包含已关联的标签。"""
+
+    tags: list[TagListResponse] = Field(default_factory=list, description="任务标签")
+
+
 class TaskListResponse(BaseModel):
     """任务列表及其分页信息。"""
 
-    items: list[TaskCreateResponse] = Field(default_factory=list, description="当前页任务")
+    items: list[TaskListItemResponse] = Field(default_factory=list, description="当前页任务")
     total: int = Field(..., description="符合条件的任务总数")
     page: int = Field(..., description="当前页码")
     page_size: int = Field(..., description="每页条数")
@@ -99,6 +107,7 @@ class TaskStatusUpdateResponse(BaseModel):
 __all__ = [
     "TaskCreateResponse",
     "TaskDetailResponse",
+    "TaskListItemResponse",
     "TaskListResponse",
     "TaskStatusUpdateResponse",
     "TaskUpdateResponse",

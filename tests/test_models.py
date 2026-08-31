@@ -1,9 +1,12 @@
 """验证 TaskFlow ORM 表结构、关系和数据库约束。"""
 
+from datetime import datetime
+
 from sqlalchemy import ForeignKeyConstraint, UniqueConstraint
 from sqlalchemy.orm import configure_mappers
 
-from app.models import Base
+from app.models import Base, Tag, Task, TaskTag
+from app.schemas.task_response import TaskListItemResponse
 
 
 def test_all_business_models_are_registered() -> None:
@@ -58,3 +61,27 @@ def test_timestamp_defaults_match_mysql_reflection() -> None:
     for column in timestamp_columns:
         assert column.server_default is not None
         assert str(column.server_default.arg) == "(now())"
+
+
+def test_task_list_item_serializes_associated_tags() -> None:
+    """任务列表项应包含关联标签的名称和颜色。"""
+
+    now = datetime(2026, 8, 31, 12, 0, 0)
+    tag = Tag(id=2, user_id=1, name="医院", color="#22C55E", created_at=now)
+    task = Task(
+        id=3,
+        user_id=1,
+        title="明天去医院",
+        description=None,
+        status="pending",
+        priority=3,
+        due_date=None,
+        completed_at=None,
+        created_at=now,
+        updated_at=now,
+    )
+    task.task_tags = [TaskTag(task_id=task.id, tag_id=tag.id, tag=tag)]
+
+    response = TaskListItemResponse.model_validate(task)
+
+    assert [(item.name, item.color) for item in response.tags] == [("医院", "#22C55E")]

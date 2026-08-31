@@ -887,6 +887,34 @@ textarea:focus {
   background: #fff0ee;
 }
 
+.task-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.task-tag {
+  display: inline-flex;
+  min-height: 22px;
+  padding: 2px 8px;
+  align-items: center;
+  gap: 5px;
+  color: #334155;
+  border: 1px solid color-mix(in srgb, var(--tag-color) 30%, white);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--tag-color) 14%, white);
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.task-tag-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: var(--tag-color);
+}
+
 .task-date {
   min-width: 106px;
   color: var(--muted);

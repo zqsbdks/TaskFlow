@@ -20,6 +20,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 
 if TYPE_CHECKING:
+    from app.models.tag import Tag
     from app.models.task_tag import TaskTag
     from app.models.user import User
 
@@ -113,3 +114,9 @@ class Task(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+
+    @property
+    def tags(self) -> list["Tag"]:
+        """返回已预加载关联记录中的标签对象。"""
+
+        return [task_tag.tag for task_tag in self.task_tags]

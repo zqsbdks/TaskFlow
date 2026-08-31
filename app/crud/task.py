@@ -7,8 +7,10 @@ from datetime import datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.task import Task
+from app.models.task_tag import TaskTag
 
 
 # region 任务查询
@@ -92,7 +94,11 @@ async def get_task_list(
     """分页查询当前用户的任务，并返回符合条件的总条数。"""
 
     # 一条语句负责查询任务列表，另一条语句负责统计任务总数。
-    task_statement = select(Task).where(Task.user_id == user_id)
+    task_statement = (
+        select(Task)
+        .options(selectinload(Task.task_tags).selectinload(TaskTag.tag))
+        .where(Task.user_id == user_id)
+    )
     count_statement = select(func.count(Task.id)).where(Task.user_id == user_id)
 
     # 如果传入了任务状态，两条查询都增加相同的状态条件。
