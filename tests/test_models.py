@@ -76,6 +76,7 @@ def test_task_list_item_serializes_associated_tags() -> None:
         status="pending",
         priority=3,
         due_date=None,
+        repeat_daily=False,
         completed_at=None,
         created_at=now,
         updated_at=now,

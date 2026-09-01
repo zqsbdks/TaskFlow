@@ -43,6 +43,7 @@ def build_task() -> Task:
         status="pending",
         priority=3,
         due_date=None,
+        repeat_daily=False,
         completed_at=None,
         created_at=now,
         updated_at=now,
@@ -75,6 +76,7 @@ async def test_create_task_service_creates_task_for_current_user(monkeypatch) ->
     assert create_task.await_args.kwargs["user_id"] == user.id
     assert create_task.await_args.kwargs["status"] == "pending"
     assert create_task.await_args.kwargs["priority"] == 3
+    assert create_task.await_args.kwargs["repeat_daily"] is False
 
 
 @pytest.mark.asyncio
@@ -254,6 +256,42 @@ async def test_update_task_status_service_clears_completed_time(monkeypatch) -> 
 
     assert update_status.await_args.kwargs["status_value"] == "in_progress"
     assert update_status.await_args.kwargs["completed_at"] is None
+
+
+@pytest.mark.asyncio
+async def test_update_task_status_service_creates_next_daily_task(monkeypatch) -> None:
+    """每日重复任务完成时，应保留当前记录并生成下一天的任务。"""
+
+    task = build_task()
+    task.repeat_daily = True
+    task.due_date = datetime(2026, 8, 31, 9, 0, 0)
+    complete_recurring = AsyncMock(return_value=task)
+    update_status = AsyncMock()
+    monkeypatch.setattr(task_service, "get_task_by_id", AsyncMock(return_value=task))
+    monkeypatch.setattr(task_service, "complete_recurring_task", complete_recurring)
+    monkeypatch.setattr(task_service, "update_task_status", update_status)
+
+    result = await task_service.update_task_status_service(
+        db=AsyncMock(),
+        current_user=build_user(),
+        task_id=task.id,
+        status_data=TaskStatusUpdateRequest(status="completed"),
+    )
+
+    assert result is task
+    assert complete_recurring.await_args.kwargs["next_due_date"] == datetime(
+        2026, 9, 1, 9, 0, 0
+    )
+    update_status.assert_not_awaited()
+
+
+def test_task_requests_accept_daily_repeat_setting() -> None:
+    """创建和编辑请求都应接受每日重复配置。"""
+
+    assert TaskCreateRequest(title="晨间复盘", repeat_daily=True).repeat_daily is True
+    assert TaskUpdateRequest(repeat_daily=False).model_dump(exclude_unset=True) == {
+        "repeat_daily": False
+    }
 
 
 @pytest.mark.asyncio

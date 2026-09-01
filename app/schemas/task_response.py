@@ -18,6 +18,7 @@ class TaskCreateResponse(BaseModel):
     status: str = Field(..., description="任务状态")
     priority: int = Field(..., description="任务优先级（1-5）")
     due_date: datetime | None = Field(default=None, description="任务截止时间")
+    repeat_daily: bool = Field(default=False, description="是否每天重复")
     completed_at: datetime | None = Field(default=None, description="任务完成时间")
     created_at: datetime = Field(..., description="创建时间")
     updated_at: datetime = Field(..., description="更新时间")
@@ -59,6 +60,7 @@ class TaskDetailResponse(BaseModel):
     status: str = Field(..., description="任务状态")
     priority: int = Field(..., description="任务优先级（1-5）")
     user_id: int = Field(..., description="任务创建者ID")
+    repeat_daily: bool = Field(default=False, description="是否每天重复")
 
     # 允许 Pydantic 直接从 SQLAlchemy Task 对象读取响应字段。
     model_config = ConfigDict(from_attributes=True)
@@ -78,6 +80,7 @@ class TaskUpdateResponse(BaseModel):
     priority: int = Field(..., description="任务优先级（1-5）")
     user_id: int = Field(..., description="任务创建者ID")
     due_date: datetime | None = Field(default=None, description="任务截止日期")
+    repeat_daily: bool = Field(default=False, description="是否每天重复")
     completed_at: datetime | None = Field(default=None, description="任务完成时间")
     updated_at: datetime = Field(..., description="更新时间")
 

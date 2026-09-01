@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="TaskFlow 任务与标签管理工作台" />
     <title>TaskFlow · 任务工作台</title>
-    <link rel="stylesheet" href="/static/styles.css?v=1.0.1.1" />
+    <link rel="stylesheet" href="/static/styles.css?v=1.0.1.5" />
   </head>
   <body>
     <div class="ambient ambient-one"></div>
@@ -124,6 +124,24 @@
             <h1 id="page-title">任务概览</h1>
           </div>
           <div class="topbar-actions">
+            <label class="quick-preference" title="选择皮肤">
+              <span aria-hidden="true">◐</span>
+              <select id="quick-theme-select" aria-label="选择皮肤">
+                <option value="forest">森林青柠</option>
+                <option value="ocean">海岸蓝</option>
+                <option value="coral">暖阳珊瑚</option>
+                <option value="graphite">石墨银</option>
+                <option value="sakura">樱花墨</option>
+              </select>
+            </label>
+            <label class="quick-preference language" title="选择语言">
+              <span aria-hidden="true">文</span>
+              <select id="quick-language-select" aria-label="选择语言">
+                <option value="zh">中文</option>
+                <option value="en">English</option>
+                <option value="ja">日本語</option>
+              </select>
+            </label>
             <button id="refresh-button" class="button button-ghost" type="button">刷新</button>
             <button id="new-task-button" class="button button-primary" type="button">
               <span class="button-plus">＋</span> 新建任务
@@ -264,6 +282,29 @@
                 <button class="button button-secondary" type="submit">更新密码</button>
               </form>
             </div>
+            <div class="content-card preferences-card">
+              <p class="section-kicker">PREFERENCES</p><h3>界面偏好</h3>
+              <div class="preferences-grid">
+                <fieldset class="preference-fieldset">
+                  <legend>选择皮肤</legend>
+                  <div id="theme-picker" class="theme-picker">
+                    <button class="theme-choice" data-theme-choice="forest" type="button"><span class="theme-swatch theme-forest"></span><span>森林青柠</span></button>
+                    <button class="theme-choice" data-theme-choice="ocean" type="button"><span class="theme-swatch theme-ocean"></span><span>海岸蓝</span></button>
+                    <button class="theme-choice" data-theme-choice="coral" type="button"><span class="theme-swatch theme-coral"></span><span>暖阳珊瑚</span></button>
+                    <button class="theme-choice" data-theme-choice="graphite" type="button"><span class="theme-swatch theme-graphite"></span><span>石墨银</span></button>
+                    <button class="theme-choice" data-theme-choice="sakura" type="button"><span class="theme-swatch theme-sakura"></span><span>樱花墨</span></button>
+                  </div>
+                </fieldset>
+                <fieldset class="preference-fieldset">
+                  <legend>选择语言</legend>
+                  <div id="language-picker" class="language-picker">
+                    <button data-language="zh" type="button">中文</button>
+                    <button data-language="en" type="button">English</button>
+                    <button data-language="ja" type="button">日本語</button>
+                  </div>
+                </fieldset>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -295,6 +336,11 @@
             <label><span>优先级</span><select name="priority"><option value="1">P1 · 最低</option><option value="2">P2 · 较低</option><option value="3" selected>P3 · 普通</option><option value="4">P4 · 较高</option><option value="5">P5 · 最高</option></select></label>
             <label><span>截止时间</span><input name="due_date" type="datetime-local" /></label>
           </div>
+          <label class="repeat-option">
+            <input name="repeat_daily" type="checkbox" />
+            <span class="repeat-option-icon" aria-hidden="true">↻</span>
+            <span><strong>每天重复</strong><small>完成后自动创建下一天的任务</small></span>
+          </label>
           <div class="modal-actions">
             <button class="button button-ghost" data-close-modal type="button">取消</button>
             <button class="button button-primary" type="submit">保存任务</button>
@@ -304,6 +350,7 @@
     </div>
 
     <div id="toast-region" class="toast-region" aria-live="polite"></div>
-    <script src="/static/app.js?v=1.0.1.1" defer></script>
+    <script src="/static/i18n.js?v=1.0.1.5" defer></script>
+    <script src="/static/app.js?v=1.0.1.5" defer></script>
   </body>
 </html>

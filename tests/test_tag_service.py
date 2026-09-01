@@ -52,6 +52,7 @@ def build_task() -> Task:
         status="pending",
         priority=3,
         due_date=None,
+        repeat_daily=False,
         completed_at=None,
         created_at=now,
         updated_at=now,

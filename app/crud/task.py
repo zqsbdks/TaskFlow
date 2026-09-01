@@ -38,9 +38,10 @@ async def get_task_by_id(
     """根据任务 ID 查询当前用户拥有的任务。"""
 
     # 同时限制任务主键和所属用户，防止用户通过修改 task_id 查看他人的任务。
-    statement = select(Task).where(
-        Task.user_id == user_id,
-        Task.id == task_id,
+    statement = (
+        select(Task)
+        .options(selectinload(Task.task_tags))
+        .where(Task.user_id == user_id, Task.id == task_id)
     )
 
     return await db.scalar(statement)
@@ -58,6 +59,7 @@ async def create_task(
     status: str,
     priority: int,
     due_date: datetime | None,
+    repeat_daily: bool,
 ) -> Task:
     """创建任务记录并返回数据库生成的完整对象。"""
 
@@ -69,6 +71,7 @@ async def create_task(
         status=status,
         priority=priority,
         due_date=due_date,
+        repeat_daily=repeat_daily,
     )
     db.add(new_task)
 
@@ -184,11 +187,41 @@ async def update_task_status(
     return task
 
 
+async def complete_recurring_task(
+    db: AsyncSession,
+    task: Task,
+    completed_at: datetime,
+    next_due_date: datetime,
+) -> Task:
+    """完成当前实例，并在同一事务中创建下一天的任务及标签关联。"""
+
+    task.status = "completed"
+    task.completed_at = completed_at
+    next_task = Task(
+        user_id=task.user_id,
+        title=task.title,
+        description=task.description,
+        status="pending",
+        priority=task.priority,
+        due_date=next_due_date,
+        repeat_daily=True,
+    )
+    db.add(next_task)
+    await db.flush()
+    for task_tag in task.task_tags:
+        db.add(TaskTag(task_id=next_task.id, tag_id=task_tag.tag_id))
+
+    await db.commit()
+    await db.refresh(task)
+    return task
+
+
 # endregion
 
 
 __all__ = [
     "create_task",
+    "complete_recurring_task",
     "delete_task",
     "get_task_by_id",
     "get_task_by_title",

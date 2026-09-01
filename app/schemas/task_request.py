@@ -19,6 +19,7 @@ class TaskCreateRequest(BaseModel):
     )
     priority: int = Field(default=3, ge=1, le=5, description="任务优先级（1-5）")
     due_date: datetime | None = Field(default=None, description="任务截止时间")
+    repeat_daily: bool = Field(default=False, description="是否每天重复")
 
 
 # endregion
@@ -51,6 +52,7 @@ class TaskUpdateRequest(BaseModel):
     description: str | None = Field(default=None, max_length=200, description="任务描述")
     priority: int | None = Field(default=None, ge=1, le=5, description="任务优先级（1-5）")
     due_date: datetime | None = Field(default=None, description="任务截止时间")
+    repeat_daily: bool | None = Field(default=None, description="是否每天重复")
 
 
 # endregion

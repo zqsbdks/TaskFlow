@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -85,6 +86,13 @@ class Task(Base):
         DateTime,
         nullable=True,
         comment="任务截止时间",
+    )
+    # repeat_daily：开启后，完成当前任务会自动创建下一天的待办任务。
+    repeat_daily: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        server_default=text("0"),
+        comment="是否每天重复",
     )
     # completed_at：任务完成时间；尚未完成或重新打开时为空。
     completed_at: Mapped[datetime | None] = mapped_column(

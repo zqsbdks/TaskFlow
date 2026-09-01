@@ -3,12 +3,13 @@
 Service 层负责执行任务业务规则，并在校验通过后调用 CRUD。
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.task import (
+    complete_recurring_task,
     create_task,
     delete_task,
     get_task_by_id,
@@ -56,6 +57,7 @@ async def create_task_service(
         status=task_data.status,
         priority=task_data.priority,
         due_date=task_data.due_date,
+        repeat_daily=task_data.repeat_daily,
     )
 
 
@@ -164,8 +166,8 @@ async def update_task_service(
             detail="没有提供需要更新的字段",
         )
 
-    # title 和 priority 对应数据库非空字段，不能显式更新为 null。
-    for field_name in ("title", "priority"):
+    # 以下字段对应数据库非空字段，不能显式更新为 null。
+    for field_name in ("title", "priority", "repeat_daily"):
         if field_name in update_values and update_values[field_name] is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -278,6 +280,15 @@ async def update_task_status_service(
         completed_at = datetime.now()
     else:
         completed_at = None
+
+    if status_data.status == "completed" and task.repeat_daily:
+        next_due_date = (task.due_date or completed_at) + timedelta(days=1)
+        return await complete_recurring_task(
+            db=db,
+            task=task,
+            completed_at=completed_at,
+            next_due_date=next_due_date,
+        )
 
     return await update_task_status(
         db=db,

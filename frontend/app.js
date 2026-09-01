@@ -17,6 +17,8 @@ const state = {
   adminTab: "users",
   adminPage: 1,
   adminTotalPages: 0,
+  theme: localStorage.getItem("taskflow_theme") || "forest",
+  language: localStorage.getItem("taskflow_language") || "zh",
 };
 
 const statusLabels = {
@@ -32,8 +34,15 @@ document.addEventListener("DOMContentLoaded", initialize);
 
 function initialize() {
   collectElements();
+  applyTheme(state.theme);
+  document.documentElement.lang = { zh: "zh-CN", en: "en", ja: "ja" }[state.language];
   bindEvents();
+  translatePage();
   setTodayLabel();
+  document.querySelectorAll("[data-language]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.language === state.language);
+  });
+  elements.quickLanguageSelect.value = state.language;
 
   if (state.token) {
     showApplication();
@@ -56,7 +65,8 @@ function collectElements() {
     "task-form", "tag-list", "tag-empty", "tag-form", "color-value",
     "tag-binding-form", "binding-task", "binding-tag", "remove-tag-button",
     "admin-table-title", "admin-table-head", "admin-table-body", "admin-pagination",
-    "toast-region",
+    "toast-region", "theme-picker", "language-picker", "quick-theme-select",
+    "quick-language-select",
   ];
 
   ids.forEach((id) => {
@@ -99,6 +109,14 @@ function bindEvents() {
   elements.profileForm.addEventListener("submit", handleProfileUpdate);
   elements.passwordForm.addEventListener("submit", handlePasswordUpdate);
   elements.adminTableBody.addEventListener("click", handleAdminTableClick);
+  elements.themePicker.addEventListener("click", handleThemeChoice);
+  elements.languagePicker.addEventListener("click", handleLanguageChoice);
+  elements.quickThemeSelect.addEventListener("change", () => applyTheme(elements.quickThemeSelect.value));
+  elements.quickLanguageSelect.addEventListener("change", () => {
+    state.language = elements.quickLanguageSelect.value;
+    localStorage.setItem("taskflow_language", state.language);
+    applyLanguage();
+  });
   elements.taskModal.addEventListener("click", (event) => {
     if (event.target === elements.taskModal) closeTaskModal();
   });
@@ -205,10 +223,10 @@ function switchAuthTab(tab) {
   });
   elements.loginForm.classList.toggle("hidden", !isLogin);
   elements.registerForm.classList.toggle("hidden", isLogin);
-  elements.authTitle.textContent = isLogin ? "登录你的工作台" : "创建一个新账户";
-  elements.authSubtitle.textContent = isLogin
+  elements.authTitle.textContent = t(isLogin ? "登录你的工作台" : "创建一个新账户");
+  elements.authSubtitle.textContent = t(isLogin
     ? "继续推进那些真正重要的事情。"
-    : "从一个清晰的计划开始。";
+    : "从一个清晰的计划开始。");
 }
 
 function showAuthentication() {
@@ -225,7 +243,7 @@ function showApplication() {
 function renderUser() {
   if (!state.user) return;
   const initial = (state.user.username || "U").trim().charAt(0).toUpperCase();
-  const roleName = state.user.role === "admin" ? "管理员" : "普通用户";
+  const roleName = t(state.user.role === "admin" ? "管理员" : "普通用户");
   elements.sidebarUsername.textContent = state.user.username;
   elements.sidebarRole.textContent = roleName;
   elements.sidebarAvatar.textContent = initial;
@@ -279,12 +297,13 @@ function renderTasks() {
   elements.taskList.innerHTML = state.tasks.map(taskTemplate).join("");
   elements.taskList.classList.toggle("hidden", state.tasks.length === 0);
   elements.taskEmpty.classList.toggle("hidden", state.tasks.length !== 0);
+  translatePage(elements.taskList);
 }
 
 function taskTemplate(task) {
   const completed = task.status === "completed";
-  const dueDate = task.due_date ? formatDate(task.due_date) : "无截止时间";
-  const description = task.description ? escapeHtml(task.description) : "暂无描述";
+  const dueDate = task.due_date ? formatDate(task.due_date) : t("无截止时间");
+  const description = task.description ? escapeHtml(task.description) : t("暂无描述");
   const tags = (task.tags || []).map((tag) => `
     <span class="task-tag" style="--tag-color: ${safeColor(tag.color)}">
       <span class="task-tag-dot"></span>${escapeHtml(tag.name)}
@@ -298,13 +317,15 @@ function taskTemplate(task) {
           <select class="inline-status status-${task.status}" data-action="change-status" aria-label="修改任务状态">
             ${Object.entries(statusLabels).map(([value, label]) => `<option value="${value}" ${value === task.status ? "selected" : ""}>${label}</option>`).join("")}
           </select>
-          <span class="priority-badge ${task.priority >= 4 ? "high" : ""}">P${task.priority}</span>
+          <span class="priority-badge priority-${task.priority}">P${task.priority}</span>
+          ${task.repeat_daily ? `<span class="repeat-badge" title="${t("每天重复")}">↻ ${t("每天")}</span>` : ""}
           ${tags ? `<span class="task-tags">${tags}</span>` : ""}
           <span>${description}</span>
         </div>
       </div>
       <time class="task-date">${dueDate}</time>
       <div class="task-actions">
+        <button class="task-action repeat-action ${task.repeat_daily ? "active" : ""}" data-action="toggle-repeat" type="button" title="${task.repeat_daily ? "关闭每天重复" : "开启每天重复"}">↻</button>
         <button class="task-action" data-action="edit" type="button" title="编辑任务">✎</button>
         <button class="task-action danger" data-action="delete" type="button" title="删除任务">×</button>
       </div>
@@ -347,6 +368,7 @@ function handleTaskListClick(event) {
 
   if (button.dataset.action === "edit") openTaskModal(task);
   if (button.dataset.action === "delete") deleteTask(task);
+  if (button.dataset.action === "toggle-repeat") toggleTaskRepeat(task);
   if (button.dataset.action === "toggle-complete") {
     updateTaskStatus(task, task.status === "completed" ? "pending" : "completed");
   }
@@ -366,11 +388,24 @@ async function updateTaskStatus(task, nextStatus) {
       method: "PUT",
       body: JSON.stringify({ status: nextStatus }),
     });
-    showToast("任务状态已更新");
+    showToast(t(task.repeat_daily && nextStatus === "completed" ? "已完成，明日任务已自动创建" : "任务状态已更新"));
     await loadTasks();
   } catch (error) {
     showToast(error.message, "error");
     renderTasks();
+  }
+}
+
+async function toggleTaskRepeat(task) {
+  try {
+    await api(`/tasks/update/${task.id}`, {
+      method: "PUT",
+      body: JSON.stringify({ repeat_daily: !task.repeat_daily }),
+    });
+    showToast(task.repeat_daily ? "已关闭每天重复" : "已开启每天重复");
+    await loadTasks();
+  } catch (error) {
+    showToast(error.message, "error");
   }
 }
 
@@ -390,14 +425,16 @@ function openTaskModal(task = null) {
   elements.taskForm.reset();
   elements.taskForm.elements.priority.value = "3";
   elements.taskForm.elements.task_id.value = task?.id || "";
-  elements.taskModalTitle.textContent = task ? "编辑任务" : "新建任务";
+  elements.taskModalTitle.textContent = t(task ? "编辑任务" : "新建任务");
   if (task) {
     elements.taskForm.elements.title.value = task.title || "";
     elements.taskForm.elements.description.value = task.description || "";
     elements.taskForm.elements.priority.value = String(task.priority);
     elements.taskForm.elements.due_date.value = toLocalDateTimeInput(task.due_date);
+    elements.taskForm.elements.repeat_daily.checked = Boolean(task.repeat_daily);
   }
   elements.taskModal.classList.remove("hidden");
+  translatePage(elements.taskModal);
   document.body.style.overflow = "hidden";
   elements.taskForm.elements.title.focus();
 }
@@ -417,6 +454,7 @@ async function handleTaskSubmit(event) {
     description: form.get("description").trim() || null,
     priority: Number(form.get("priority")),
     due_date: form.get("due_date") || null,
+    repeat_daily: form.get("repeat_daily") === "on",
   };
 
   setButtonBusy(submitButton, true, "保存中…");
@@ -460,6 +498,7 @@ function renderTags() {
     </article>`).join("");
   elements.tagList.classList.toggle("hidden", state.tags.length === 0);
   elements.tagEmpty.classList.toggle("hidden", state.tags.length !== 0);
+  translatePage(elements.tagList);
 }
 
 async function handleTagCreate(event) {
@@ -504,6 +543,7 @@ function populateBindingOptions() {
   if ([...elements.bindingTag.options].some((option) => option.value === selectedTag)) {
     elements.bindingTag.value = selectedTag;
   }
+  translatePage(elements.tagBindingForm);
 }
 
 async function handleTagBinding(event) {
@@ -592,7 +632,7 @@ function switchView(view) {
   ["dashboard", "tags", "profile", "admin"].forEach((name) => {
     elements[`${name}View`].classList.toggle("hidden", name !== view);
   });
-  elements.pageTitle.textContent = titles[view];
+  elements.pageTitle.textContent = t(titles[view]);
   elements.newTaskButton.classList.toggle("hidden", view !== "dashboard");
   document.querySelector(".sidebar").classList.remove("open");
   if (view === "tags") loadTags();
@@ -651,6 +691,7 @@ function renderAdminTable(items) {
   if (!items.length) {
     elements.adminTableBody.innerHTML = '<tr><td colspan="6">暂无数据</td></tr>';
   }
+  translatePage(elements.adminView);
 }
 
 async function handleAdminTableClick(event) {
@@ -682,7 +723,7 @@ function renderPagination(container, current, total, onChange) {
   container.innerHTML = "";
   if (total <= 1) return;
   const pages = paginationRange(current, total);
-  const previous = pageButton("上一页", current - 1, current === 1, false, onChange);
+  const previous = pageButton(t("上一页"), current - 1, current === 1, false, onChange);
   container.appendChild(previous);
   pages.forEach((page) => {
     if (page === "…") {
@@ -693,7 +734,7 @@ function renderPagination(container, current, total, onChange) {
       container.appendChild(pageButton(String(page), page, false, page === current, onChange));
     }
   });
-  container.appendChild(pageButton("下一页", current + 1, current === total, false, onChange));
+  container.appendChild(pageButton(t("下一页"), current + 1, current === total, false, onChange));
 }
 
 function pageButton(label, page, disabled, active, onChange) {
@@ -718,16 +759,63 @@ function toggleSidebar() {
 }
 
 function setTodayLabel() {
-  elements.todayLabel.textContent = new Intl.DateTimeFormat("zh-CN", {
+  const locales = { zh: "zh-CN", en: "en-US", ja: "ja-JP" };
+  elements.todayLabel.textContent = new Intl.DateTimeFormat(locales[state.language], {
     month: "long", day: "numeric", weekday: "long",
   }).format(new Date());
+}
+
+function t(source) {
+  return window.TaskFlowI18n.t(source);
+}
+
+function translatePage(root = document.body) {
+  window.TaskFlowI18n.translatePage(root);
+}
+
+function applyTheme(theme) {
+  state.theme = theme;
+  document.documentElement.dataset.theme = theme;
+  localStorage.setItem("taskflow_theme", theme);
+  document.querySelectorAll("[data-theme-choice]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.themeChoice === theme);
+  });
+  if (elements.quickThemeSelect) elements.quickThemeSelect.value = theme;
+}
+
+function handleThemeChoice(event) {
+  const button = event.target.closest("[data-theme-choice]");
+  if (button) applyTheme(button.dataset.themeChoice);
+}
+
+function handleLanguageChoice(event) {
+  const button = event.target.closest("[data-language]");
+  if (!button) return;
+  state.language = button.dataset.language;
+  localStorage.setItem("taskflow_language", state.language);
+  applyLanguage();
+}
+
+function applyLanguage() {
+  document.documentElement.lang = { zh: "zh-CN", en: "en", ja: "ja" }[state.language];
+  document.querySelectorAll("[data-language]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.language === state.language);
+  });
+  if (elements.quickLanguageSelect) elements.quickLanguageSelect.value = state.language;
+  translatePage();
+  setTodayLabel();
+  renderUser();
+  renderTasks();
+  populateBindingOptions();
+  switchView(state.currentView);
+  if (state.currentView === "admin") loadAdminData();
 }
 
 function setButtonBusy(button, busy, busyText = "处理中…") {
   if (!button) return;
   if (busy) {
     button.dataset.originalText = button.innerHTML;
-    button.textContent = busyText;
+    button.textContent = t(busyText);
     button.disabled = true;
   } else {
     button.innerHTML = button.dataset.originalText || button.innerHTML;
@@ -738,7 +826,7 @@ function setButtonBusy(button, busy, busyText = "处理中…") {
 function showToast(message, type = "success") {
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
-  toast.textContent = message;
+  toast.textContent = t(message);
   elements.toastRegion.appendChild(toast);
   window.setTimeout(() => toast.remove(), 3200);
 }
